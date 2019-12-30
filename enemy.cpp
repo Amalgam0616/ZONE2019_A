@@ -31,7 +31,8 @@
 #define		PPI_R_P_START_FRAME		(74)	//右通常パンチ
 #define		PPI_L_P_START_FRAME		(74)	//左通常パンチ
 #define		FLASH_P_START_FRAME		(74)	//瞬間移動パンチ
-#define		PPI_D_P_START_FRAME		(74)	//左通常パンチ
+#define		PPI_D_P_START_FRAME		(74)	//両手バーンてするパンチ
+#define		SPIN_P_START_FRAME		(12000)	//回転パンチ
 
 //瞬間移動パンチのスローまでのフレーム
 #define		FLASH_P_SLOW_FRAME		(74)
@@ -85,7 +86,7 @@ float Punch_Speed;
 //パンチ終了Z座標
 float g_PunchEndLine;
 
-//瞬間移動字の速度倍率
+//瞬間移動時の速度倍率
 static float g_Slow_Multi;
 //パンチ開始Z座標
 //0= 右　1= 左
@@ -113,9 +114,8 @@ static const int g_EndFrameList[PPI_MAX] =
 	0,	//右瞬間移動パンチ
 	0,	//左瞬間移動パンチ
 	10,	//両手バーンてするパンチ
+	0,	//回転するやつ
 };
-
-
 
 //スローフラグ(いる)
 bool SlowFlg;
@@ -158,7 +158,8 @@ HRESULT InitEnemy()
 	//パンチパターン作成
 	for (int i = 0; i < NUM_PUNCH; i++)
 	{
-		g_PunchPattern[i] = rand() % (PPI_MAX - 1);
+		//g_PunchPattern[i] = rand() % (PPI_MAX - 1);
+		g_PunchPattern[i] = SPIN_PUNCH_L;
 	}
 
 	//パンチ中か否か
@@ -265,10 +266,15 @@ void UpdateEnemy()
 						SlowFlg = false;
 					}
 				}
+				else if (g_PunchPattern[g_PunchCnt] == SPIN_PUNCH_L)
+				{//左に攻撃する回転パンチ
+					//メモ：胴体のX軸回転でスロー分岐させる予定
+					//あるいは専用の変数でカウントするフレーム数
+				}
 			}
 		}
 
-		//正しい方向の回避が入力されたらスロー解除
+		//回避が入力されたらスロー解除
 		if (GetDodgeFlg())
 		{
 			SlowFlg = false;
@@ -346,6 +352,11 @@ void UpdateEnemy()
 				{//両手バーンてするパンチ
 					g_Punch_Pattern_Index = PPI_DUNK_PUNCH;
 					DunkPunch();
+				}
+				else if (g_PunchPattern[g_PunchCnt] == SPIN_PUNCH_L)
+				{//左に攻撃する回転パンチ
+					g_Punch_Pattern_Index = SPIN_PUNCH_L;
+					SpinPunch_L();
 				}
 			}
 		}
@@ -1195,6 +1206,130 @@ void DunkPunch()
 			}
 		}
 		else
+		{//到達したら終わり
+			//後々つかうので０にする
+			g_PunchFrameCnt = 0;
+			//フェーズ進行
+			g_PunchPhase = PUNCH_PHASE_RETURN;
+		}
+	}
+	else if (g_PunchPhase == PUNCH_PHASE_RETURN)
+	{
+		if (g_PunchFrameCnt == 1)
+		{//最初のフレームに戻り用のベクトルを作る
+			CreatePunchEndVec();
+		}
+		else if (g_PunchFrameCnt >= 3)
+		{//数フレームまってから元の位置に戻す
+			if (g_PunchFrameCnt < g_EndFrameList[g_PunchPattern[g_PunchCnt]])
+			{
+				for (int i = 0; i < ENEMY_MODEL_NUM - 1; i++)
+				{
+					g_Enemy[i].Pos -= g_PunchEndVec[i];
+					g_Enemy[i].Rot -= g_PunchEndRot[i];
+				}
+			}
+			else
+			{//スタート位置に戻ったらパンチ処理を終了する
+				//フレーム：フェーズを初期化
+				g_PunchFrameCnt = 0;
+				g_PunchPhase = PUNCH_PHASE_CHARGE;
+				//初期位置に戻す
+				EnemyPosReset();
+
+				//パンチ終了
+				Punch_Flg = false;
+				isTaiki = true;
+				g_WaitTime = rand() % 60 + 120;
+
+				//パンチ回数加算(デバッグ用に無限ループする)
+				if (g_PunchCnt < NUM_PUNCH - 1)
+				{
+					g_PunchCnt++;
+				}
+				else
+				{
+					g_PunchCnt = 0;
+				}
+			}
+		}
+	}
+}
+//左に攻撃する回転パンチ(SPIN_PUNCH_L)(作成者：Amalgam、No.04)
+void SpinPunch_L()
+{
+	//各種変数
+	static float radius;	//回転の半径
+
+	//回転パンチ用1フレーム当たりの回転角度(Dig)
+	static float SpinDig;
+
+	//フレーム進行
+	g_PunchFrameCnt++;
+
+	if (g_PunchPhase == PUNCH_PHASE_CHARGE)
+	{//予備動作
+		if (g_PunchFrameCnt < SPIN_P_START_FRAME)
+		{
+			if (g_PunchFrameCnt == 1)
+			{
+				//これ↓怖いからコメントしとく
+				//Punch_Charge_Effect();
+
+				//左手
+				g_Enemy[2].Pos = D3DXVECTOR3(9.0f, 12.5f, 26.0f);
+				g_Enemy[2].Rot = D3DXVECTOR3(D3DXToRadian(0.0f), D3DXToRadian(0.0f), D3DXToRadian(0.0f));
+
+				//右手
+				g_Enemy[3].Pos = D3DXVECTOR3(-9.0f, 12.5f, 26.0f);
+				g_Enemy[3].Rot = D3DXVECTOR3(D3DXToRadian(0.0f), D3DXToRadian(0.0f), D3DXToRadian(0.0f));
+
+				radius = 9.0f;
+				SpinDig = 2.0f;
+
+				//PunchLR = true;
+			}
+
+			//手を広げる
+			if (g_PunchFrameCnt < 50)
+			{
+				g_Enemy[2].Pos.x += 4.0f / 50;
+				g_Enemy[3].Pos.x += -4.0f / 50;
+
+				radius += 4.0f / 50;
+				SpinDig += 20.0f / 50;
+			}
+
+			//高速回転
+			float tmp = SpinDig * g_PunchFrameCnt;
+
+			//左手
+			g_Enemy[2].Pos.x = ((cos(D3DXToRadian(tmp)) + sin(D3DXToRadian(tmp))) * radius) - (0.0f - g_Enemy[0].Pos.x);
+			g_Enemy[2].Pos.z = ((-sin(D3DXToRadian(tmp)) + cos(D3DXToRadian(tmp))) * radius) - (0.0f - g_Enemy[0].Pos.z);
+			//右手
+			g_Enemy[3].Pos.x = -((cos(D3DXToRadian(tmp)) + sin(D3DXToRadian(tmp))) * radius) - (0.0f - g_Enemy[0].Pos.x);
+			g_Enemy[3].Pos.z = -((-sin(D3DXToRadian(tmp)) + cos(D3DXToRadian(tmp))) * radius) - (0.0f - g_Enemy[0].Pos.z);
+		}
+		else
+		{
+			//プレイヤーの頭へのベクトルを出す
+
+			//フェーズ進行
+			//g_PunchPhase = PUNCH_PHASE_SWING;
+		}
+	}
+	else if (g_PunchPhase == PUNCH_PHASE_SWING)
+	{//パンチ本体
+		if (g_Enemy[3].Pos.z >= g_PunchEndLine)
+		{//エンドラインに到達してなければ動かす(プレイヤーは敵からみてZマイナス方向にいる)
+			if (SlowFlg)
+			{//スローエリア内だったら速度に下方補正
+			}
+			else
+			{
+			}
+		}
+		else if (g_Enemy[3].Pos.z < g_PunchEndLine)
 		{//到達したら終わり
 			//後々つかうので０にする
 			g_PunchFrameCnt = 0;

@@ -60,6 +60,8 @@ enum PUNCH_PATTERN_INDEX
 	R_FLASH_PUNCH,			//右瞬間移動パンチ
 	L_FLASH_PUNCH,			//左瞬間移動パンチ
 	PPI_DUNK_PUNCH,			//両手バーンてするパンチ
+	SPIN_PUNCH_L,			//左側に攻撃する回転するやつ
+	SPIN_PUNCH_R,			//左側に攻撃する回転するやつ
 
 	PUNCH_NULL,				//パンチしてない状態
 
@@ -98,6 +100,8 @@ void Right_R_FLASH_PUNCH();
 void Left_R_FLASH_PUNCH();
 //両手バーンてするパンチ
 void DunkPunch();
+//左に攻撃する回転するやつ
+void SpinPunch_L();
 
 //パンチ後に元の位置に戻すやつ作るやつ
 void CreatePunchEndVec();
