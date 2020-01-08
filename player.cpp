@@ -36,9 +36,11 @@ static bool Leg_Flg;
 static bool Step_Stop;
 static bool g_Once_AddScore_Flg;
 
-//アッパー用宣言
-static int Upper_Frame;
-static int Upper_Phase;
+//追加部分1==========================================
+//Finish_Punch用宣言
+bool g_Finish_Flg;
+int g_Finish_Cnt;
+//追加部分1==========================================
 
 //ダメージフラグ
 bool damage_flag;
@@ -57,18 +59,6 @@ static bool g_AddScoreFlg;
 
 //スコアを減らすフラグ
 static bool g_Reduce_ScoreFlg;
-
-//アッパー関連
-static float Body_Move1;
-static float Body_Move2;
-static float Head_Move1;
-static float Grobe_Grobe_L;
-static float Grobe_Grobe_R;
-static float Rotate_Z_R2;
-static float Rotate_Z_R3;
-static float Leg_L_Move;
-static float Leg_R_Move;
-
 
 //アニメーションのリスト
 static PL_ANIME g_AnimeList[ANIME_INDEX_MAX] =
@@ -146,19 +136,11 @@ HRESULT InitPlayer()
 	OldFrame = g_AnimFrameCnt;
 	AnimStopFlg = false;
 
-	//アッパー関連
-	Upper_Frame = 0;
-	Upper_Phase = -1;
-	Body_Move1 = 0.0f;
-	Body_Move2 = 0.0f;
-	Head_Move1 = 0.0f;
-	Grobe_Grobe_L = 0.0f;
-	Grobe_Grobe_R = 0.0f;
-	Rotate_Z_R2 = 1.0f;
-	Rotate_Z_R3 = 1.0f;
-	Leg_L_Move = 0.0f;
-	Leg_R_Move = 0.0f;
-
+	//追加部分2==========================================
+	//Finish関連
+	g_Finish_Flg = false;
+	g_Finish_Cnt = 0;
+	//追加部分2==========================================
 
 	damage_flag = false;
 	return S_OK;
@@ -176,28 +158,29 @@ void UninitPlayer()
 //更新
 void UpdatePlayer()
 {
-	if (Keyboard_IsTrigger(DIK_NUMPADENTER))
+	//追加部分3==========================================
+	//これたぶんデバック用だから一回コメントアウト
+	/*if (Keyboard_IsTrigger(DIK_NUMPADENTER))
 	{
 		Step_Stop = true;
-	}
-	else if (Keyboard_IsTrigger(DIK_RETURN))
+	}*/
+	
+
+	if (GetPunchIndex()==LAST_PUNCH)
 	{
 		Step_Stop = true;
+		
+		if (Keyboard_IsTrigger(DIK_M))
+		{
+			PlayerPosReset();
+		}
 	}
+	//追加部分3==========================================
 
 	if (!Step_Stop)
 	{
 		//アニメーション進行
 		Animation();
-	}
-	else
-	{
-		if (Upper_Phase == -1)
-		{
-			//Upper_Phaseを0にする
-			Upper_Phase = 0;
-		}
-		Upper();
 	}
 
 	//待機モーション以外のアニメーションを行っている且つ、敵がパンチ中でない場合はキー入力を行えない
@@ -346,6 +329,28 @@ void UpdatePlayer()
 	{
 		g_Once_AddScore_Flg = false;
 	}
+
+	//追加部分4==========================================
+	//FinishPunchが打てるようになったら通るようになる：ENTERでFinishPunchを発動可能にする
+	if (GetLastPunchPhase() == PUNCH_PHASE_SLOW)
+	{
+		if (Keyboard_IsTrigger(DIK_RETURN))
+		{
+			g_Finish_Flg = true;
+			Finish_Punch_Pos();
+		}
+	}
+
+	//g_Finish_FLgが正になったとき通るとFinishPunchを撃つ
+	if(GetLastPunchPhase()==PUNCH_PHASE_STOP)
+	{
+		if (g_Finish_Flg)
+		{
+			Finish_Punch();
+		}
+	}
+	//追加部分4==========================================
+	
 }
 //描画
 void DrawPlayer()
@@ -371,29 +376,35 @@ void DrawPlayer()
 			p_D3DDevice->SetTexture(0, g_Player[j].pTextures[i]);
 			//透過度設定
 			//避けるフェーズ中グローブだけ透明にしない
-			if (Upper_Phase == -1) {
-				if (j == 2 || j == 3) {
+			if (GetLastPunchPhase() < PUNCH_PHASE_SLOW) 
+			{
+				if (j == 2 || j == 3)
+				{
 					g_Player[j].pMaterials[i].Diffuse.a = 1.0f;
 				}
-				else {
+				else 
+				{
 					g_Player[j].pMaterials[i].Diffuse.a = 0.3f;
 				}
 			}
-			//避けるフェーズ中グローブだけ透明にしない
-			if (Upper_Phase >= 1) {
+
+			if (GetLastPunchPhase() >= PUNCH_PHASE_STOP)
+			{
 				g_Player[j].pMaterials[i].Diffuse.a = 1.0f;
 			}
 			//いわゆる描画
 			g_Player[j].pMesh->DrawSubset(i);
 		}
 	}
+
+
 	//ダメージを受けたときのやつ
 	if (damage_flag)
 	{
 		DamageEffect();
 	}
 	//決めろ！のテクスチャ
-	if (Upper_Phase == 1) {
+	if (GetLastPunchPhase() == PUNCH_PHASE_SLOW) {
 		Sprite_Draw
 		(
 			TEXTURE_INDEX_PUSHUPPER,
@@ -570,6 +581,34 @@ void AnimMovingParFrame()
 	}
 }
 
+//追加部分5==========================================
+//FinshPunchのポジションと関数
+void Finish_Punch_Pos()
+{
+	g_Player[0].Pos += D3DXVECTOR3(0,0,0);
+	g_Player[0].Rot += D3DXVECTOR3(D3DXToRadian(-20.0f),0,0);
+	g_Player[1].Pos += D3DXVECTOR3(0,0,3.0f);
+	g_Player[1].Rot += D3DXVECTOR3(D3DXToRadian(-30.0f),0,0);
+	g_Player[2].Pos += D3DXVECTOR3(0, 0, 6.0f);
+	g_Player[2].Rot += D3DXVECTOR3(D3DXToRadian(-80.0f), D3DXToRadian(0.0f), D3DXToRadian(0.0f));
+	g_Player[3].Pos += D3DXVECTOR3(0,0,0);
+	g_Player[3].Rot += D3DXVECTOR3(0,0,0);
+	g_Player[4].Pos += D3DXVECTOR3(0,0,5.0f);
+	g_Player[4].Rot += D3DXVECTOR3(0,0,0);
+	g_Player[5].Pos += D3DXVECTOR3(0,0,-5.0f);
+	g_Player[5].Rot += D3DXVECTOR3(D3DXToRadian(-10.0f),0,0);
+}
+
+void Finish_Punch()
+{
+	g_Finish_Cnt++;
+	for (int i = 0; i < PLAYER_MODEL_NUM; i++)
+	{
+		g_Player[i].Pos.z += 160.0f / (g_Finish_Cnt * 4);
+	}
+}
+//追加部分5==========================================
+
 //回避フラグのGetter
 bool GetDodgeFlg()
 {
@@ -612,163 +651,8 @@ void PlayerPosReset()
 	g_Player[5].Scale = D3DXVECTOR3(1.0f, 1.0f, 1.0f);
 }
 
-void Upper()
-{
-	//フレーム加算
-	Upper_Frame++;
-
-	//フェーズ毎の処理
-	switch (Upper_Phase)
-	{
-		//ステップのフェーズ
-	case 0:
-		if (Upper_Frame < 10)
-		{
-			static float Phase1_Frame = 10.0f;
-			Upper_Body1();
-			Upper_Head1();
-			Upper_Grobe_L1();
-			Upper_Grobe_R1();
-			Upper_Leg_L();
-			Upper_Leg_R1();
-		}
-		else
-		{
-			//次のフェーズの準備&フレームリセット(以後else文全てに搭載)
-			g_Player[3].Rot = D3DXVECTOR3(D3DXToRadian(180.0f), D3DXToRadian(90.0f), D3DXToRadian(0.0f));
-			//g_Player[0].Rot.y +=D3DXToRadian(30.0f);
-			Upper_Phase++;
-			Upper_Frame = 0;
-		}
-		break;
-
-		//キー入力
-	case 1:
-		if (Keyboard_IsTrigger(DIK_RETURN))
-		{
-			Upper_Phase++;
-			Upper_Frame = 0;
-		}
-		else if (Keyboard_IsTrigger(DIK_NUMPADENTER))
-		{
-			Upper_Phase++;
-			Upper_Frame = 0;
-		}
-		break;
-
-		//アッパーの体に当たるまでのフェーズ
-	case 2:
-
-		//腕を体まで動かす処理
-		if (Upper_Frame < 8)
-		{
-			static float Phase2_Frame = 10.0f;
-			Upper_Grobe_R2(Phase2_Frame);
-		}
-		//ヒットストップ
-		if (Upper_Frame >= 10) {
-			Upper_Phase++;
-			Upper_Frame = 0;
-		}
-		break;
-
-		//アッパーの体に当たった後のフェーズ
-	case 3:
-		//体から腕を振り切る処理
-		if (Upper_Frame < 8)
-		{
-			//スコアを増やす
-			AddScore(111111);
-			static float Phase3_Frame = 10.0f;
-			Upper_Grobe_R3(Phase3_Frame);
-		}
-		break;
-
-	default:
-		break;
-	}
-}
-
-//パーツごとのアッパー中の動き
-void Upper_Body1()
-{
-
-	Body_Move1 = Body_Move1 + 0.75f;
-	g_Player[0].Pos.y -= 0.05f;
-	g_Player[0].Pos.z = Body_Move1;
-	g_Player[0].Rot.x -= D3DXToRadian(3.0f);
-}
-
-void Upper_Body2()
-{
-	Body_Move2 += 3.0f;
-	g_Player[0].Rot.y = D3DXToRadian(Body_Move2);
-}
-
-void Upper_Head1()
-{
-	Head_Move1 = Head_Move1 + 1.2f;
-	g_Player[1].Pos.y -= 0.12f;
-	g_Player[1].Pos.z = Head_Move1;
-	g_Player[1].Rot.x -= D3DXToRadian(3.0f);
-}
-
-void Upper_Grobe_L1()
-{
-	Grobe_Grobe_L = Grobe_Grobe_L + 0.75f;
-	g_Player[2].Pos.y -= 0.05f;
-	g_Player[2].Pos.z = Grobe_Grobe_L * 1.5f;
-	g_Player[2].Rot.x -= D3DXToRadian(3.0f);
-
-}
-
-void Upper_Grobe_R1()
-{
-	Grobe_Grobe_R = Grobe_Grobe_R + 0.75f;
-	g_Player[3].Pos.y -= 0.05f;
-	g_Player[3].Pos.z = Grobe_Grobe_R * 1.5f;
-	g_Player[3].Rot.x -= D3DXToRadian(3.0f);
-
-}
-
-void Upper_Grobe_R2(float Time)
-{
-	Rotate_Z_R2 = Rotate_Z_R2 * 1.35f;
-	g_Player[3].Pos.x += D3DXToRadian(90.0f / Time) * -1.8f;
-	g_Player[3].Pos.y += D3DXToRadian(90.0f / Time) * 1.5f; //1.5f
-	g_Player[3].Pos.z += D3DXToRadian(90.0f / Time) * 11.0f;
-	g_Player[3].Rot.z += D3DXToRadian(Rotate_Z_R2);
-}
-
-void Upper_Grobe_R3(float Time)
-{
-	Rotate_Z_R3 = Rotate_Z_R3 * 1.35f;
-	g_Player[3].Pos.y += D3DXToRadian(90.0f / Time) * 6.5f;
-	g_Player[3].Pos.z += D3DXToRadian(90.0f / Time) * 7.0f;
-	g_Player[3].Rot.z += D3DXToRadian(Rotate_Z_R3);
-}
-
-void Upper_Leg_L()
-{
-	Leg_L_Move += 1.5f;
-	g_Player[4].Pos.z = Leg_L_Move;
-}
-
-void Upper_Leg_R1()
-{
-	Leg_R_Move += 0.05f;
-	g_Player[5].Pos.y += Leg_R_Move;
-	g_Player[5].Rot.x -= D3DXToRadian(8.0f);
-}
-
 //プレイヤーのGetter
 XMODEL* GetPlayer()
 {
 	return g_Player;
-}
-
-//Upper_PhaseのGetter
-int GetUpper_Phase()
-{
-	return Upper_Phase;
 }

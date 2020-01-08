@@ -10,6 +10,23 @@
 #include "main.h"
 #include "Xfile.h"
 
+//追加部分1==========================================
+//最後のパンチのフレーム関係(カメラ等で使用するためヘッダにおく)
+#define		LAST_PUNCH_CHAGE_FRAME	(60)	
+#define		LAST_PUNCH_WAVE_FRAME	(60)	
+#define		LAST_PUNCH_SET_FRAME	(60)	
+#define		LAST_PUNCH_PUNCH_FRAME	(10)	
+#define		LAST_PUNCH_SLOW_FRAME	(10)	
+#define		LAST_PUNCH_STOP_FRAME	(30)
+#define		LAST_PUNCH_YOIN_FRAME	(120)
+#define		LAST_PUNCH_FLYAWAY_FRAME (10)
+#define		LAST_PUNCH_FLYING_FRAME	(330)	//余裕をもって11秒取っておいた(これ以降は要相談)
+
+
+//吹き飛ばさるときのフレーム
+#define		FLYAWAY_MOVE1_FRAME		(60)
+//追加部分1==========================================
+
 //瞬間移動パンチ（右）の初期位置、回転。数字はパーツの配列と同じ
 #define R_FLASH_PUNCH_R_POS0 D3DXVECTOR3(-10.0f,15.0f,26.0f) 
 #define R_FLASH_PUNCH_R_POS1 D3DXVECTOR3(-10.0f,30.0f,26.0f) 
@@ -41,8 +58,6 @@
 #define L_FLASH_PUNCH_ROT5 D3DXVECTOR3(D3DXToRadian(0.0f),D3DXToRadian(0.0f),D3DXToRadian(0.0f))
 
 
-
-
 //パンチのフェーズ(状態)
 enum PUNCH_PHASE
 {
@@ -51,6 +66,24 @@ enum PUNCH_PHASE
 	PUNCH_PHASE_RETURN,
 
 };
+
+//追加部分2==========================================
+//最後のパンチのフェーズ(状態)
+enum LAST_PUNCH_PHASE
+{
+	PUNCH_PHASE_LCHARGE = 0,
+	PUNCH_PHASE_WAVE,
+	PUNCH_PHASE_SET,
+	PUNCH_PHASE_PUNCH,
+	PUNCH_PHASE_SLOW,
+	PUNCH_PHASE_STOP,
+	PUNCH_PHASE_YOIN,
+	PUNCH_PHASE_FLYAWAY,
+	PUNCH_PHASE_INFLYING,
+	PUNCH_PHASE_OUTFLYING,
+	PUNCH_PHASE_CLASH
+};
+//追加部分2==========================================
 
 //パンチパターン収納
 enum PUNCH_PATTERN_INDEX
@@ -61,6 +94,9 @@ enum PUNCH_PATTERN_INDEX
 	L_FLASH_PUNCH,			//左瞬間移動パンチ
 	PPI_DUNK_PUNCH,			//両手バーンてするパンチ
 
+	//追加部分3==========================================
+	LAST_PUNCH,				//最後のパンチ
+	//追加部分3==========================================
 	PUNCH_NULL,				//パンチしてない状態
 
 	PPI_MAX
@@ -99,6 +135,14 @@ void Left_R_FLASH_PUNCH();
 //両手バーンてするパンチ
 void DunkPunch();
 
+//追加部分4==========================================
+//さいごのパンチ
+void Last_Punch();
+
+//敵が吹っ飛ぶやつ
+void ENEMY_FLYAWAY();
+//追加部分4==========================================
+
 //パンチ後に元の位置に戻すやつ作るやつ
 void CreatePunchEndVec();
 
@@ -116,3 +160,8 @@ bool GetPunchLR();
 
 //撃っているパンチの種類のGetter
 PUNCH_PATTERN_INDEX GetPunchIndex();
+
+//追加部分5==========================================
+//最後のパンチのGetter
+LAST_PUNCH_PHASE GetLastPunchPhase();
+//追加部分5==========================================

@@ -148,179 +148,49 @@ void UpdateCamera(void)
 		//ゲームの時の更新処理
 
 		g_Player_Camera = true;
-		//if (Keyboard_IsPress(DIK_W))
-		//{// 右移動
-		//	//角度加算
-		//	g_CameraRot_X += CAMERA_SPEED;
-		//	g_CameraRot_Z += CAMERA_SPEED;
-		//	Camera_Rot_Y();
-		//}
-		//if (Keyboard_IsPress(DIK_A))
-		//{// 左移動
-		//	g_CameraRot_X -= CAMERA_SPEED;
-		//	g_CameraRot_Z -= CAMERA_SPEED;
-		//	Camera_Rot_Y();
-		//}
-
-		//if (Keyboard_IsPress(DIK_D))
-		//{// 右移動
-		//	//角度加算
-		//	if (g_CameraRot_Y < CAMERA_TOP_LIMIT)
-		//	{
-		//		g_CameraRot_Y += CAMERA_SPEED;
-		//	}
-		//	Camera_Rot_X();
-		//}
-		//if (Keyboard_IsPress(DIK_S))
-		//{// 左移動
-		//	if (g_CameraRot_Y > CAMERA_BOTTOM_LIMIT)
-		//	{
-		//		g_CameraRot_Y -= CAMERA_SPEED;
-		//	}
-		//	Camera_Rot_X();
-		//}
-
-		//カメラの位置と移動時間のリセット
-		if (Keyboard_IsTrigger(DIK_R))
+	
+		//追加部分1(ここにあったデバック処理は恐らく使わない＆別のファイルに退避済みなので消してOK)==========================================
+		//最後のパンチのカメラワーク関連
+		if (GetLastPunchPhase() == PUNCH_PHASE_SET)
 		{
-			g_Camera.posV = D3DXVECTOR3(CAMERA_POSV_X, CAMERA_POSV_Y, CAMERA_POSV_Z);
-			g_Camera.posR = D3DXVECTOR3(CAMERA_POSR_X, CAMERA_POSR_Y, CAMERA_POSR_Z);
-			g_CameraRot_X = 270.0f;
-			g_CameraRot_Y = 270.0f;
-			g_CameraRot_Z = 270.0f;
-			g_Axis1_Scond = AXIS1_TIME;
-			g_Yspin_Scond = YSPIN_TIME;
+
 		}
-
-		if (Keyboard_IsPress(DIK_O))
+		else if (GetLastPunchPhase() == PUNCH_PHASE_PUNCH)
 		{
-			g_Camera.posV.z++;
+
 		}
-
-		if (Keyboard_IsPress(DIK_L))
+		else if (GetLastPunchPhase() == PUNCH_PHASE_SLOW)
 		{
-			g_Camera.posV.z--;
+
 		}
-
-		//「1」で固定軸移動のフラグをtrueにする
-		if (Keyboard_IsTrigger(DIK_1) && !g_Axis1_Flg)
+		else if (GetLastPunchPhase() == PUNCH_PHASE_STOP)
 		{
-			g_Axis1_Flg = true;
-			g_Axis1_Time_Frame = g_Axis1_Scond * 60;	//Axis1～に移動時間をフレーム数にして代入する
+			//カメラを全体像が見える位置に移動させる
+			g_Camera.posR = D3DXVECTOR3(0, 30.0f, 0);
+			g_Camera.posV = D3DXVECTOR3(150.0f, 60.0f, 0);
 		}
-
-		//固定軸移動のフラグがtrueか、かつ移動時間が残っているかを見る
-		if (g_Axis1_Flg && g_Axis1_Time_Frame > 0.0f)
+		else if (GetLastPunchPhase() == PUNCH_PHASE_YOIN)
 		{
-			//固定軸移動
-			Camera_Move_Axis1(g_Camera.posV,
-				D3DXVECTOR3(g_Camera.posV.x + 20, g_Camera.posV.y, g_Camera.posV.z + 40.0f),
-				g_Axis1_Scond);
-
-			g_Axis1_Time_Frame--;
-
-			//移動時間(フレーム)が0以下になったら固定軸移動のフラグをfalseにする
-			if (g_Axis1_Time_Frame <= 0)
-			{
-				g_Axis1_Flg = false;
-			}
+			g_Camera.posR = D3DXVECTOR3(0, 30.0f, 0);
+			g_Camera.posV = D3DXVECTOR3(150.0f, 60.0f, 0);
 		}
-
-
-		//「2」でY軸回転移動のフラグをtrueにする
-		if (Keyboard_IsTrigger(DIK_2) && !g_Yspin_Flg)
+		else if (GetLastPunchPhase() >= PUNCH_PHASE_FLYAWAY)
 		{
-			g_Yspin_Flg = true;
-			g_Yspin_Time_Frame = g_Yspin_Scond * 60;	//Spin1～に移動時間をフレーム数にして代入する
+				//敵の顔をカメラの中心点にして吹っ飛んだ敵を追う
+			Finish_CameraMove();
 		}
-
-		//Y軸回転移動のフラグがtrueか、かつ移動時間が残っているかを見る
-		if (g_Yspin_Flg && g_Yspin_Time_Frame > 0.0f)
+		else
 		{
-			//Y軸回転移動
-			Camera_Move_Yspin(g_Camera.posV,
-				180.0f,
-				g_Yspin_Scond);
-
-			g_Yspin_Time_Frame--;
-
-			//移動時間(フレーム)が0以下になったY軸回転移動のフラグをfalseにする
-			if (g_Yspin_Time_Frame <= 0)
-			{
-				g_Yspin_Flg = false;
-			}
-		}
-
-
-		//「3」でX軸回転移動のフラグをtrueにする
-		if (Keyboard_IsTrigger(DIK_3) && !g_Xspin_Flg)
-		{
-			g_Xspin_Flg = true;
-			g_Xspin_Time_Frame = g_Xspin_Scond * 60;	//Xspin～に移動時間をフレーム数にして代入する
-		}
-
-		//X軸回転移動のフラグがtrueか、かつ移動時間が残っているかを見る
-		if (g_Xspin_Flg && g_Xspin_Time_Frame > 0.0f)
-		{
-			/*if (g_CameraRot_Y < CAMERA_TOP_LIMIT || g_CameraRot_Y > CAMERA_BOTTOM_LIMIT)
-			{
-				g_Xspin_Flg = false;
-			}*/
-			//X軸回転移動
-			Camera_Move_Xspin(g_Camera.posV,
-				60.0f,
-				g_Xspin_Scond);
-
-			g_Xspin_Time_Frame--;
-
-			//移動時間(フレーム)が0以下になったX軸回転移動のフラグをfalseにする
-			if (g_Xspin_Time_Frame <= 0)
-			{
-				g_Xspin_Flg = false;
-			}
-		}
-
-		if (Keyboard_IsTrigger(DIK_P))
-		{
-			if (!g_Player_Camera)
-			{
-				g_Player_Camera = true;
-			}
-			else
-			{
-				g_Player_Camera = false;
-			}
-		}
-
-
-		//アッパーに入った時
-		if (GetUpper_Phase() == 1)
-		{
-			g_Camera.posV = D3DXVECTOR3(-50, 10, -50);
-		}
-		//アッパーが決まった後敵にカメラが追従する
-		else if (GetUpper_Phase() == 3)
-		{
-			//すぐには追従させないようにする処理
-			g_Upper_Cnt++;
-			if (g_Upper_Cnt >= 90) {
-				g_Camera.posR = D3DXVECTOR3((GetEnemy() + 1)->Pos.x, (GetEnemy() + 1)->Pos.y, (GetEnemy() + 1)->Pos.z);
-			}
-		}
-		if (GetUpper_Phase() == -1)
-		{
-			//g_Camera.posR = D3DXVECTOR3(GetEnemy()->Pos.x, GetEnemy()->Pos.y + 7.0f, GetEnemy()->Pos.z);
 			g_Camera.posV.x = (GetPlayer() + 1)->Pos.x;
 			g_Camera.posV.z = (GetPlayer() + 1)->Pos.z - 7;
 		}
-
-
+		//追加部分1==========================================
 	}
 	else if (GetScene() == SCENE_INDEX_RANKING)
 	{
 		//ランキングの時の更新処理
 	}
-
+	
 }
 
 //=============================================================================
@@ -468,7 +338,36 @@ void Camera_Move_Xspin(D3DXVECTOR3(Start_Pos), float Rota_X, float Spin_Time)
 	g_Camera.posV.y = cosf(D3DXToRadian(g_CameraRot_Y)) * CAMERA_RAD;
 }
 
-void Upeer_CameraMove()
+//追加部分2==========================================
+//以下最後のパンチのカメラ関連(作ったけど微妙だったからまた後で調整)
+//フェーズ番号を後につける
+void LastPunchCamera1()
+{
+	g_Camera.posV.z += 16.0f / (LAST_PUNCH_WAVE_FRAME + 15);
+}
+
+void LastPunchCamera2()
+{
+	static float LastPunch_CameraRotXZ2 = 15.0f;
+	static float LastPunch_CameraRotY2 = 30.0f;
+	//敵とカメラの距離
+	static float EtoC_Distance = GetEnemy()->Pos.z - g_Camera.posV.z;
+	g_Camera.posV += D3DXVECTOR3(cos(D3DXToRadian(LastPunch_CameraRotXZ2)) * EtoC_Distance / (LAST_PUNCH_SET_FRAME + 15), sin(D3DXToRadian(LastPunch_CameraRotY2)) * EtoC_Distance / (LAST_PUNCH_SET_FRAME + 15), sin(D3DXToRadian(LastPunch_CameraRotXZ2)) * EtoC_Distance / (LAST_PUNCH_SET_FRAME + 15));
+}
+
+void LastPunchCamera3()
+{
+
+}
+
+void LastPunchCamera4()
+{
+
+}
+
+void Finish_CameraMove()
 {
 	g_Camera.posR = D3DXVECTOR3((GetEnemy() + 1)->Pos);
 }
+
+//追加部分2==========================================

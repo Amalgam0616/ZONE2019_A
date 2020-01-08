@@ -18,8 +18,9 @@ enum PLAYER_ANIME_INDEX
 	PLANIME_INDEX_DODGE_L,
 	PLANIME_INDEX_DODGE_R,
 	PLANIME_INDEX_DAMAGE,
-	PLANIME_INDEX_UPPER,
-
+	//追加部分1==========================================
+	PLANIME_INDEX_FINISHPUNCH,
+	//追加部分1==========================================
 	ANIME_INDEX_MAX,
 };
 
@@ -54,27 +55,11 @@ void AnimMovingParFrame();
 
 void PlayerPosReset();
 
-//アッパー関連
-void Upper();
+//追加部分2==========================================
+void Finish_Punch_Pos();
 
-//アッパー中の各パーツの動き
-void Upper_Body1();
-
-void Upper_Body2();
-
-void Upper_Head1();
-
-void Upper_Grobe_L1();
-
-void Upper_Grobe_R1();
-
-void Upper_Grobe_R2(float Time);
-
-void Upper_Grobe_R3(float Time);
-
-void Upper_Leg_L();
-
-void Upper_Leg_R1();
+void Finish_Punch();
+//追加部分2==========================================
 
 //プレイヤーのGetter
 XMODEL* GetPlayer();
@@ -83,5 +68,3 @@ bool GetDodgeFlg();
 
 bool GetLrFlg();
 
-//Upper_PhaseのGetter
-int GetUpper_Phase();

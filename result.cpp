@@ -78,22 +78,23 @@ void UpdateResult(void)
 		}
 	}
 
-
+	//追加部分1==========================================
 	//でっかいエンターキーを押したら
 	//アッパーしてから20秒たったら(後々、オブジェクトに衝突したらになると思う)
-	if ((Keyboard_IsTrigger(DIK_NUMPADENTER) && GetUpper_Phase() == 3 && g_ResultStart == true) || 
-		(GetUpper_Phase() == 3 && g_ResultStart == true && RankingChangeCnt >= 600))
+	if ((Keyboard_IsTrigger(DIK_NUMPADENTER) && GetLastPunchPhase() == PUNCH_PHASE_CLASH && g_ResultStart == true) ||
+		(GetLastPunchPhase() == PUNCH_PHASE_CLASH && g_ResultStart == true && RankingChangeCnt >= 600))
 	{
 		g_Ranking_Start = true;
 		InitRanking();
 	}
 	//普通のエンターキー
-	else if (Keyboard_IsTrigger(DIK_RETURN) && GetUpper_Phase() == 3 && g_ResultStart == true ||
-		(GetUpper_Phase() == 3 && g_ResultStart == true && RankingChangeCnt >= 600))
+	else if (Keyboard_IsTrigger(DIK_RETURN) && GetLastPunchPhase() == PUNCH_PHASE_CLASH && g_ResultStart == true ||
+		(GetLastPunchPhase() == PUNCH_PHASE_CLASH && g_ResultStart == true && RankingChangeCnt >= 600))
 	{
 		g_Ranking_Start = true;
 		InitRanking();
 	}
+	//追加部分1==========================================
 }
 
 void DrawResult(void)
