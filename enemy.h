@@ -93,6 +93,8 @@ enum PUNCH_PATTERN_INDEX
 	R_FLASH_PUNCH,			//右瞬間移動パンチ
 	L_FLASH_PUNCH,			//左瞬間移動パンチ
 	PPI_DUNK_PUNCH,			//両手バーンてするパンチ
+	PPI_L_JUMP_PUNCH,		//ジャンプパンチ
+	PPI_R_JUMP_PUNCH,
 
 	//追加部分3==========================================
 	LAST_PUNCH,				//最後のパンチ
@@ -134,6 +136,10 @@ void Right_R_FLASH_PUNCH();
 void Left_R_FLASH_PUNCH();
 //両手バーンてするパンチ
 void DunkPunch();
+//ジャンプパンチ左
+void JumpPunch_L();
+//ジャンプパンチ右
+void JumpPunch_R();
 
 //追加部分4==========================================
 //さいごのパンチ

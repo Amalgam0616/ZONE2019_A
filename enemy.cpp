@@ -32,6 +32,7 @@
 #define		PPI_L_P_START_FRAME		(74)	//左通常パンチ
 #define		FLASH_P_START_FRAME		(74)	//瞬間移動パンチ
 #define		PPI_D_P_START_FRAME		(74)	//左通常パンチ
+#define		PPI_JP_START_FRAME		(120)	//ジャンプパンチ(左右一貫)
 
 
 //瞬間移動パンチのスローまでのフレーム
@@ -125,6 +126,8 @@ static const int g_EndFrameList[PPI_MAX] =
 	0,	//右瞬間移動パンチ
 	0,	//左瞬間移動パンチ
 	10,	//両手バーンてするパンチ
+	15,	//ジャンプパンチ左
+	15,	//ジャンプパンチ右
 };
 
 
@@ -171,7 +174,8 @@ HRESULT InitEnemy()
 	//パンチパターン作成
 	for (int i = 0; i < NUM_PUNCH; i++)
 	{
-		g_PunchPattern[i] = rand() % (PPI_MAX - 2);
+		//g_PunchPattern[i] = rand() % (PPI_MAX - 2);
+		g_PunchPattern[i] = PPI_L_JUMP_PUNCH;
 	}
 	//最後のパンチは必ず
 	g_PunchPattern[NUM_PUNCH - 1] = LAST_PUNCH;
@@ -297,6 +301,28 @@ void UpdateEnemy()
 						SlowFlg = false;
 					}
 				}
+				else if (g_PunchPattern[g_PunchCnt] == PPI_L_JUMP_PUNCH)
+				{//ジャンプパンチ左
+					if (g_Enemy[2].Pos.z < SLOW_IN && g_Enemy[2].Pos.z >(SLOW_OUT - 2.0f) && !SlowFlg)
+					{
+						SlowFlg = true;
+					}
+					else if (g_Enemy[2].Pos.z < (SLOW_OUT - 2.0f) && SlowFlg)
+					{
+						SlowFlg = false;
+					}
+				}
+				else if (g_PunchPattern[g_PunchCnt] == PPI_R_JUMP_PUNCH)
+				{//ジャンプパンチ右
+					if (g_Enemy[3].Pos.z < SLOW_IN && g_Enemy[3].Pos.z >(SLOW_OUT - 2.0f) && !SlowFlg)
+					{
+						SlowFlg = true;
+					}
+					else if (g_Enemy[3].Pos.z < (SLOW_OUT - 2.0f) && SlowFlg)
+					{
+						SlowFlg = false;
+					}
+				}
 			}
 		}
 
@@ -307,14 +333,14 @@ void UpdateEnemy()
 		}
 	}
 
-	////待機中だったら待機モーションをやる
-	//if (istaiki)
-	//{
-	//	//アニメ―ション進行
-	//	enmanimation();
-	//	//フレーム進行
-	//	g_enmanimframecnt++;	//ここで　1　以上になる
-	//}
+	//待機中だったら待機モーションをやる
+	if (isTaiki)
+	{
+		//アニメ―ション進行
+		EnmAnimation();
+		//フレーム進行
+		g_EnmAnimFrameCnt++;	//ここで　1　以上になる
+	}
 
 	//パンチ関連
 	{
@@ -338,7 +364,7 @@ void UpdateEnemy()
 			if (Punch_Flg)
 			{
 				//ラストのパンチを一回目で見たい場合は下のコメントを解除してください
-				g_PunchPattern[g_PunchCnt] = LAST_PUNCH;
+				//g_PunchPattern[g_PunchCnt] = LAST_PUNCH;
 
 				//パンチ回数目のパンチパターンを見て、if分分岐
 				if (g_PunchPattern[g_PunchCnt] == PPI_RIGHT_PUNCH)
@@ -381,6 +407,16 @@ void UpdateEnemy()
 				{//両手バーンてするパンチ
 					g_Punch_Pattern_Index = PPI_DUNK_PUNCH;
 					DunkPunch();
+				}
+				else if (g_PunchPattern[g_PunchCnt] == PPI_L_JUMP_PUNCH)
+				{//ジャンプパンチ左
+					g_Punch_Pattern_Index = PPI_L_JUMP_PUNCH;
+					JumpPunch_L();
+				}
+				else if (g_PunchPattern[g_PunchCnt] == PPI_R_JUMP_PUNCH)
+				{//ジャンプパンチ右
+					g_Punch_Pattern_Index = PPI_R_JUMP_PUNCH;
+					JumpPunch_R();
 				}
 				//追加部分6==========================================
 				else if (g_PunchPattern[g_PunchCnt] == LAST_PUNCH)
@@ -1220,6 +1256,444 @@ void DunkPunch()
 			}
 		}
 		else
+		{//到達したら終わり
+			//後々つかうので０にする
+			g_PunchFrameCnt = 0;
+			//フェーズ進行
+			g_PunchPhase = PUNCH_PHASE_RETURN;
+		}
+	}
+	else if (g_PunchPhase == PUNCH_PHASE_RETURN)
+	{
+		if (g_PunchFrameCnt == 1)
+		{//最初のフレームに戻り用のベクトルを作る
+			CreatePunchEndVec();
+		}
+		else if (g_PunchFrameCnt >= 3)
+		{//数フレームまってから元の位置に戻す
+			if (g_PunchFrameCnt < g_EndFrameList[g_PunchPattern[g_PunchCnt]])
+			{
+				for (int i = 0; i < ENEMY_MODEL_NUM - 1; i++)
+				{
+					g_Enemy[i].Pos -= g_PunchEndVec[i];
+					g_Enemy[i].Rot -= g_PunchEndRot[i];
+				}
+			}
+			else
+			{//スタート位置に戻ったらパンチ処理を終了する
+				//フレーム：フェーズを初期化
+				g_PunchFrameCnt = 0;
+				g_PunchPhase = PUNCH_PHASE_CHARGE;
+				//初期位置に戻す
+				EnemyPosReset();
+
+				//パンチ終了
+				Punch_Flg = false;
+				isTaiki = true;
+				g_WaitTime = rand() % 60 + 120;
+
+				//パンチ回数加算(デバッグ用に無限ループする)
+				if (g_PunchCnt < NUM_PUNCH - 1)
+				{
+					g_PunchCnt++;
+				}
+				else
+				{
+					g_PunchCnt = 0;
+				}
+			}
+		}
+	}
+}
+//ジャンピングパンチ左(PPI_L_JUMP_PUNCH)(作成者：Amalgam、No.04)
+void JumpPunch_L()
+{
+	//目標地点へのベクトル
+	static D3DXVECTOR3 dir;
+
+	//フレーム進行
+	g_PunchFrameCnt++;
+
+	if (g_PunchPhase == PUNCH_PHASE_CHARGE)
+	{//予備動作
+		if (g_PunchFrameCnt < PPI_JP_START_FRAME)
+		{
+			//グッ
+			if (g_PunchFrameCnt < 10)
+			{
+				//胴体
+				g_Enemy[0].Pos.y -= 0.2f;
+
+				//頭
+				g_Enemy[1].Pos.y -= 0.3f;
+				g_Enemy[1].Rot.x -= D3DXToRadian(1.5f);
+
+				//左腕
+				g_Enemy[2].Pos.x -= 0.2f;
+				g_Enemy[2].Pos.y -= 0.3f;
+
+				//右腕
+				g_Enemy[3].Pos.x += 0.2f;
+				g_Enemy[3].Pos.y -= 0.3f;
+			}
+			//グ2
+			else if (g_PunchFrameCnt > 10 && g_PunchFrameCnt < 15)
+			{
+				//胴体
+				g_Enemy[0].Pos.y -= 0.4f;
+
+				//頭
+				g_Enemy[1].Pos.y -= 0.6f;
+				g_Enemy[1].Rot.x -= D3DXToRadian(3.0f);
+
+				//左腕
+				g_Enemy[2].Pos.x -= 0.4f;
+				g_Enemy[2].Pos.y -= 0.5f;
+
+				//右腕
+				g_Enemy[3].Pos.x += 0.4f;
+				g_Enemy[3].Pos.y -= 0.6f;
+			}
+			//ピョン1
+			else if (g_PunchFrameCnt > 45 && g_PunchFrameCnt < 50)
+			{
+				//胴
+				g_Enemy[0].Pos.y += 1.0f;
+				g_Enemy[0].Rot.x += D3DXToRadian(1.0f);
+
+				//頭
+				g_Enemy[1].Pos.y += 1.0f;
+				g_Enemy[1].Rot.x += D3DXToRadian(10.0f);
+
+				//左腕
+				g_Enemy[2].Pos.x += 1.0f;
+				g_Enemy[2].Pos.y += 4.0f;
+
+				//右腕
+				g_Enemy[3].Pos.x -= 0.6f;
+				g_Enemy[3].Pos.y += 0.1f;
+
+				//左足
+				g_Enemy[4].Pos.y += 0.5f;
+				g_Enemy[4].Rot.x -= D3DXToRadian(20.0f);
+
+				//右足
+				g_Enemy[5].Pos.y += 0.5f;
+				g_Enemy[5].Rot.x -= D3DXToRadian(20.0f);
+			}
+			//ピョン2
+			else if (g_PunchFrameCnt > 50 && g_PunchFrameCnt < 65)
+			{
+				for (int i = 0; i < ENEMY_MODEL_NUM - 1; i++)
+				{
+					g_Enemy[i].Pos.y += 1.0f;
+					g_Enemy[i].Pos.z += 0.5f;
+				}
+			}
+			//グーッ1
+			else if (g_PunchFrameCnt == 66)
+			{
+				//胴
+				g_Enemy[0].Rot.x = D3DXToRadian(-20.0f);
+
+				//頭
+				g_Enemy[1].Pos.y -= 2.0f;
+				g_Enemy[1].Pos.z -= 5.0f;
+				g_Enemy[1].Rot.x = D3DXToRadian(-20.0f);
+
+				//左腕
+				g_Enemy[2].Pos.y -= 8.0f;
+				g_Enemy[2].Rot = D3DXVECTOR3(D3DXToRadian(10.0f), D3DXToRadian(120.0f), D3DXToRadian(0.0f));
+			}
+			//グーッ2(エフェクト入れるならここ)
+			else if(g_PunchFrameCnt > 70 && g_PunchFrameCnt < 85)
+			{
+				//左腕
+				g_Enemy[2].Pos.x += 0.09f;
+				g_Enemy[2].Pos.y += 0.09f;
+				g_Enemy[2].Pos.z += 0.25f;
+
+				PunchLR = false;
+			}
+		}
+		else
+		{
+			//プレイヤーの頭へのベクトルを出す
+			dir.x = 0.0f - g_Enemy[2].Pos.x;
+			dir.y = 8.0f - g_Enemy[2].Pos.y;
+			dir.z = g_PunchEndLine - g_Enemy[2].Pos.z;
+			D3DXVec3Normalize(&dir, &dir);
+
+			//フェーズ進行
+			g_PunchPhase = PUNCH_PHASE_SWING;
+			g_PunchFrameCnt = 0;
+		}
+	}
+	else if (g_PunchPhase == PUNCH_PHASE_SWING)
+	{//パンチ本体
+		if (g_Enemy[2].Pos.z >= g_PunchEndLine)
+		{//エンドラインに到達してなければ動かす(プレイヤーは敵からみてZマイナス方向にいる)
+			if (SlowFlg)
+			{
+				//胴体
+				g_Enemy[0].Pos.y += dir.y * 0.25f;
+				g_Enemy[0].Pos.z += dir.z * 0.25f;
+				g_Enemy[0].Rot.x += D3DXToRadian(0.5f);
+				g_Enemy[0].Rot.y += D3DXToRadian(0.5f);
+
+				//頭
+				g_Enemy[1].Pos.x -= 0.05f;
+				g_Enemy[1].Pos.y += dir.y * 0.25f;
+				g_Enemy[1].Pos.z += dir.z * 0.25f - 0.05f;
+				g_Enemy[1].Rot.x += D3DXToRadian(0.5f);
+				g_Enemy[1].Rot.y += D3DXToRadian(0.5f);
+
+				//右腕
+				g_Enemy[2].Pos.x += dir.x;
+				g_Enemy[2].Pos.y += dir.y;
+				g_Enemy[2].Pos.z += dir.z;
+			}
+			else
+			{
+				//胴体
+				g_Enemy[0].Pos.y += dir.y * 0.5f;
+				g_Enemy[0].Pos.z += dir.z * 0.5f;
+				g_Enemy[0].Rot.x += D3DXToRadian(1.0f);
+				g_Enemy[0].Rot.y += D3DXToRadian(1.0f);
+
+				//頭
+				g_Enemy[1].Pos.x -= 0.1f;
+				g_Enemy[1].Pos.y += dir.y * 0.5f;
+				g_Enemy[1].Pos.z += dir.z * 0.5f - 0.1f;
+				g_Enemy[1].Rot.x += D3DXToRadian(1.0f);
+				g_Enemy[1].Rot.y += D3DXToRadian(1.0f);
+
+				//右腕
+				g_Enemy[2].Pos.x += dir.x * 2.0f;
+				g_Enemy[2].Pos.y += dir.y * 2.0f;
+				g_Enemy[2].Pos.z += dir.z * 2.0f;
+			}
+		}
+		else if (g_Enemy[2].Pos.z < g_PunchEndLine)
+		{//到達したら終わり
+			//後々つかうので０にする
+			g_PunchFrameCnt = 0;
+			//フェーズ進行
+			g_PunchPhase = PUNCH_PHASE_RETURN;
+		}
+	}
+	else if (g_PunchPhase == PUNCH_PHASE_RETURN)
+	{
+		if (g_PunchFrameCnt == 1)
+		{//最初のフレームに戻り用のベクトルを作る
+			CreatePunchEndVec();
+		}
+		else if (g_PunchFrameCnt >= 3)
+		{//数フレームまってから元の位置に戻す
+			if (g_PunchFrameCnt < g_EndFrameList[g_PunchPattern[g_PunchCnt]])
+			{
+				for (int i = 0; i < ENEMY_MODEL_NUM - 1; i++)
+				{
+					g_Enemy[i].Pos -= g_PunchEndVec[i];
+					g_Enemy[i].Rot -= g_PunchEndRot[i];
+				}
+			}
+			else
+			{//スタート位置に戻ったらパンチ処理を終了する
+				//フレーム：フェーズを初期化
+				g_PunchFrameCnt = 0;
+				g_PunchPhase = PUNCH_PHASE_CHARGE;
+				//初期位置に戻す
+				EnemyPosReset();
+
+				//パンチ終了
+				Punch_Flg = false;
+				isTaiki = true;
+				g_WaitTime = rand() % 60 + 120;
+
+				//パンチ回数加算(デバッグ用に無限ループする)
+				if (g_PunchCnt < NUM_PUNCH - 1)
+				{
+					g_PunchCnt++;
+				}
+				else
+				{
+					g_PunchCnt = 0;
+				}
+			}
+		}
+	}
+}
+//ジャンピングパンチ右(PPI_R_JUMP_PUNCH)(作成者：Amalgam、No.05)
+void JumpPunch_R()
+{
+	//目標地点へのベクトル
+	static D3DXVECTOR3 dir;
+
+	//フレーム進行
+	g_PunchFrameCnt++;
+
+	if (g_PunchPhase == PUNCH_PHASE_CHARGE)
+	{//予備動作
+		if (g_PunchFrameCnt < PPI_JP_START_FRAME)
+		{
+			//グッ
+			if (g_PunchFrameCnt < 10)
+			{
+				//胴体
+				g_Enemy[0].Pos.y -= 0.2f;
+
+				//頭
+				g_Enemy[1].Pos.y -= 0.3f;
+				g_Enemy[1].Rot.x -= D3DXToRadian(1.5f);
+
+				//左腕
+				g_Enemy[2].Pos.x -= 0.2f;
+				g_Enemy[2].Pos.y -= 0.3f;
+
+				//右腕
+				g_Enemy[3].Pos.x += 0.2f;
+				g_Enemy[3].Pos.y -= 0.3f;
+			}
+			//グ2
+			else if (g_PunchFrameCnt > 10 && g_PunchFrameCnt < 15)
+			{
+				//胴体
+				g_Enemy[0].Pos.y -= 0.4f;
+
+				//頭
+				g_Enemy[1].Pos.y -= 0.6f;
+				g_Enemy[1].Rot.x -= D3DXToRadian(3.0f);
+
+				//左腕
+				g_Enemy[2].Pos.x -= 0.4f;
+				g_Enemy[2].Pos.y -= 0.5f;
+
+				//右腕
+				g_Enemy[3].Pos.x += 0.4f;
+				g_Enemy[3].Pos.y -= 0.6f;
+			}
+			//ピョン1
+			else if (g_PunchFrameCnt > 45 && g_PunchFrameCnt < 50)
+			{
+				//胴
+				g_Enemy[0].Pos.y += 1.0f;
+				g_Enemy[0].Rot.x += D3DXToRadian(1.0f);
+
+				//頭
+				g_Enemy[1].Pos.y += 1.0f;
+				g_Enemy[1].Rot.x += D3DXToRadian(10.0f);
+
+				//左腕
+				g_Enemy[2].Pos.x += 0.6f;
+				g_Enemy[2].Pos.y += 0.1f;
+
+				//右腕
+				g_Enemy[3].Pos.x -= 1.0f;
+				g_Enemy[3].Pos.y += 4.0f;
+
+				//左足
+				g_Enemy[4].Pos.y += 0.5f;
+				g_Enemy[4].Rot.x -= D3DXToRadian(20.0f);
+
+				//右足
+				g_Enemy[5].Pos.y += 0.5f;
+				g_Enemy[5].Rot.x -= D3DXToRadian(20.0f);
+			}
+			//ピョン2
+			else if (g_PunchFrameCnt > 50 && g_PunchFrameCnt < 65)
+			{
+				for (int i = 0; i < ENEMY_MODEL_NUM - 1; i++)
+				{
+					g_Enemy[i].Pos.y += 1.0f;
+					g_Enemy[i].Pos.z += 0.5f;
+				}
+			}
+			//グーッ1
+			else if (g_PunchFrameCnt == 66)
+			{
+				//胴
+				g_Enemy[0].Rot.x = D3DXToRadian(-20.0f);
+
+				//頭
+				g_Enemy[1].Pos.y -= 2.0f;
+				g_Enemy[1].Pos.z -= 5.0f;
+				g_Enemy[1].Rot.x = D3DXToRadian(-20.0f);
+
+				//右腕
+				g_Enemy[3].Pos.y -= 8.0f;
+				g_Enemy[3].Rot = D3DXVECTOR3(D3DXToRadian(10.0f), D3DXToRadian(-90.0f), D3DXToRadian(0.0f));
+			}
+			//グーッ2(エフェクト入れるならここ)
+			else if (g_PunchFrameCnt > 70 && g_PunchFrameCnt < 85)
+			{
+				//左腕
+				g_Enemy[3].Pos.x -= 0.09f;
+				g_Enemy[3].Pos.y += 0.09f;
+				g_Enemy[3].Pos.z += 0.25f;
+
+				PunchLR = true;
+			}
+		}
+		else
+		{
+			//プレイヤーの頭へのベクトルを出す
+			dir.x = 0.0f - g_Enemy[3].Pos.x;
+			dir.y = 8.0f - g_Enemy[3].Pos.y;
+			dir.z = g_PunchEndLine - g_Enemy[3].Pos.z;
+			D3DXVec3Normalize(&dir, &dir);
+
+			//フェーズ進行
+			g_PunchPhase = PUNCH_PHASE_SWING;
+			g_PunchFrameCnt = 0;
+		}
+	}
+	else if (g_PunchPhase == PUNCH_PHASE_SWING)
+	{//パンチ本体
+		if (g_Enemy[3].Pos.z >= g_PunchEndLine)
+		{//エンドラインに到達してなければ動かす(プレイヤーは敵からみてZマイナス方向にいる)
+			if (SlowFlg)
+			{
+				//胴体
+				g_Enemy[0].Pos.y += dir.y * 0.25f;
+				g_Enemy[0].Pos.z += dir.z * 0.25f;
+				g_Enemy[0].Rot.x -= D3DXToRadian(0.5f);
+				g_Enemy[0].Rot.y -= D3DXToRadian(0.5f);
+
+				//頭
+				g_Enemy[1].Pos.x += 0.05f;
+				g_Enemy[1].Pos.y += dir.y * 0.25f;
+				g_Enemy[1].Pos.z += dir.z * 0.25f - 0.05f;
+				g_Enemy[1].Rot.x -= D3DXToRadian(0.5f);
+				g_Enemy[1].Rot.y -= D3DXToRadian(0.5f);
+
+				//右腕
+				g_Enemy[3].Pos.x += dir.x;
+				g_Enemy[3].Pos.y += dir.y;
+				g_Enemy[3].Pos.z += dir.z;
+			}
+			else
+			{
+				//胴体
+				g_Enemy[0].Pos.y += dir.y * 0.5f;
+				g_Enemy[0].Pos.z += dir.z * 0.5f;
+				g_Enemy[0].Rot.x -= D3DXToRadian(1.0f);
+				g_Enemy[0].Rot.y -= D3DXToRadian(1.0f);
+
+				//頭
+				g_Enemy[1].Pos.x += 0.1f;
+				g_Enemy[1].Pos.y += dir.y * 0.5f;
+				g_Enemy[1].Pos.z += dir.z * 0.5f - 0.1f;
+				g_Enemy[1].Rot.x -= D3DXToRadian(1.0f);
+				g_Enemy[1].Rot.y -= D3DXToRadian(1.0f);
+
+				//右腕
+				g_Enemy[3].Pos.x += dir.x * 2.0f;
+				g_Enemy[3].Pos.y += dir.y * 2.0f;
+				g_Enemy[3].Pos.z += dir.z * 2.0f;
+			}
+		}
+		else if (g_Enemy[3].Pos.z < g_PunchEndLine)
 		{//到達したら終わり
 			//後々つかうので０にする
 			g_PunchFrameCnt = 0;
