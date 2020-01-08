@@ -203,7 +203,7 @@ void UpdatePlayer()
 				g_AddScoreFlg = true;
 
 				//スコアを増やす
-				if (g_AddScoreFlg == true && g_Once_AddScore_Flg == false && GetPunchIndex() == PPI_RIGHT_PUNCH)
+				if (g_AddScoreFlg == true && g_Once_AddScore_Flg == false && (GetPunchIndex() == PPI_RIGHT_PUNCH) || (GetPunchIndex() == PPI_R_JUMP_PUNCH))
 				{
 					AddScore(1000);
 					AddGauge(10);
@@ -244,7 +244,7 @@ void UpdatePlayer()
 				g_AddScoreFlg = true;
 
 				//スコアを増やす
-				if (g_AddScoreFlg == true && g_Once_AddScore_Flg == false && (GetPunchIndex() == PPI_LEFT_PUNCH))
+				if (g_AddScoreFlg == true && g_Once_AddScore_Flg == false && ((GetPunchIndex() == PPI_LEFT_PUNCH) || (GetPunchIndex() == PPI_L_JUMP_PUNCH)))
 				{
 					AddScore(1000);
 					//一度のみスコアを加えるフラグを正にする

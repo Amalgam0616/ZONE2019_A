@@ -174,8 +174,7 @@ HRESULT InitEnemy()
 	//パンチパターン作成
 	for (int i = 0; i < NUM_PUNCH; i++)
 	{
-		//g_PunchPattern[i] = rand() % (PPI_MAX - 2);
-		g_PunchPattern[i] = PPI_L_JUMP_PUNCH;
+		g_PunchPattern[i] = rand() % (PPI_MAX - 2);
 	}
 	//最後のパンチは必ず
 	g_PunchPattern[NUM_PUNCH - 1] = LAST_PUNCH;
@@ -1438,20 +1437,20 @@ void JumpPunch_L()
 				//胴体
 				g_Enemy[0].Pos.y += dir.y * 0.25f;
 				g_Enemy[0].Pos.z += dir.z * 0.25f;
-				g_Enemy[0].Rot.x += D3DXToRadian(0.5f);
+				g_Enemy[0].Rot.x -= D3DXToRadian(0.5f);
 				g_Enemy[0].Rot.y += D3DXToRadian(0.5f);
 
 				//頭
 				g_Enemy[1].Pos.x -= 0.05f;
 				g_Enemy[1].Pos.y += dir.y * 0.25f;
 				g_Enemy[1].Pos.z += dir.z * 0.25f - 0.05f;
-				g_Enemy[1].Rot.x += D3DXToRadian(0.5f);
+				g_Enemy[1].Rot.x -= D3DXToRadian(0.5f);
 				g_Enemy[1].Rot.y += D3DXToRadian(0.5f);
 
 				//右腕
-				g_Enemy[2].Pos.x += dir.x;
-				g_Enemy[2].Pos.y += dir.y;
-				g_Enemy[2].Pos.z += dir.z;
+				g_Enemy[2].Pos.x += dir.x * 0.5f;
+				g_Enemy[2].Pos.y += dir.y * 0.5f;
+				g_Enemy[2].Pos.z += dir.z * 0.5f;
 			}
 			else
 			{
@@ -1469,9 +1468,9 @@ void JumpPunch_L()
 				g_Enemy[1].Rot.y += D3DXToRadian(1.0f);
 
 				//右腕
-				g_Enemy[2].Pos.x += dir.x * 2.0f;
-				g_Enemy[2].Pos.y += dir.y * 2.0f;
-				g_Enemy[2].Pos.z += dir.z * 2.0f;
+				g_Enemy[2].Pos.x += dir.x * 3.0f;
+				g_Enemy[2].Pos.y += dir.y * 3.0f;
+				g_Enemy[2].Pos.z += dir.z * 3.0f;
 			}
 		}
 		else if (g_Enemy[2].Pos.z < g_PunchEndLine)
@@ -1668,9 +1667,9 @@ void JumpPunch_R()
 				g_Enemy[1].Rot.y -= D3DXToRadian(0.5f);
 
 				//右腕
-				g_Enemy[3].Pos.x += dir.x;
-				g_Enemy[3].Pos.y += dir.y;
-				g_Enemy[3].Pos.z += dir.z;
+				g_Enemy[3].Pos.x += dir.x * 0.5f;
+				g_Enemy[3].Pos.y += dir.y * 0.5f;
+				g_Enemy[3].Pos.z += dir.z * 0.5f;
 			}
 			else
 			{
@@ -1688,9 +1687,9 @@ void JumpPunch_R()
 				g_Enemy[1].Rot.y -= D3DXToRadian(1.0f);
 
 				//右腕
-				g_Enemy[3].Pos.x += dir.x * 2.0f;
-				g_Enemy[3].Pos.y += dir.y * 2.0f;
-				g_Enemy[3].Pos.z += dir.z * 2.0f;
+				g_Enemy[3].Pos.x += dir.x * 3.0f;
+				g_Enemy[3].Pos.y += dir.y * 3.0f;
+				g_Enemy[3].Pos.z += dir.z * 3.0f;
 			}
 		}
 		else if (g_Enemy[3].Pos.z < g_PunchEndLine)
