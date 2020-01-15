@@ -171,10 +171,10 @@ void UninitEffect(void)
 void UpdateEffect(void)
 {
 	//エフェクトを描画させる処理
-	if (Keyboard_IsTrigger(DIK_1) || g_Charge_Animation_Flg == true) {
-		g_Charge_Animation_Flg = true;
-		g_Punch_Val = 0;
-	}
+	//if (Keyboard_IsTrigger(DIK_1) || g_Charge_Animation_Flg == true) {
+	//	g_Charge_Animation_Flg = true;
+	//	g_Punch_Val = 0;
+	//}
 
 	//エフェクトを描画させる処理
 	if (Keyboard_IsTrigger(DIK_2) || g_Wind_Animation_Flg == true) {

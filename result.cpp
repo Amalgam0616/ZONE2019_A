@@ -53,14 +53,15 @@ void UpdateResult(void)
 {
 	playery = (GetEnemy() + 1)->Pos.y;
 	//一定位置まで飛んだかつリザルトが終了してないとき
-	if (playery >= 1500 && g_Ranking_Start == false)
+	/*
+	if (!g_ResultStart && g_Ranking_Start == false)
 	{
 		g_ResultStart = true;
 	}
 	else {
 		g_ResultStart = false;
 	}
-
+	*/
 	//シーン遷移
 	//シーン遷移の絵
 	ResultGloveMoveCnt++;
@@ -81,17 +82,19 @@ void UpdateResult(void)
 	//追加部分1==========================================
 	//でっかいエンターキーを押したら
 	//アッパーしてから20秒たったら(後々、オブジェクトに衝突したらになると思う)
-	if ((Keyboard_IsTrigger(DIK_NUMPADENTER) && GetLastPunchPhase() == PUNCH_PHASE_CLASH && g_ResultStart == true) ||
-		(GetLastPunchPhase() == PUNCH_PHASE_CLASH && g_ResultStart == true && RankingChangeCnt >= 600))
+	if (((Keyboard_IsTrigger(DIK_NUMPADENTER) && GetLastPunchPhase() == PUNCH_PHASE_CLASH && g_ResultStart == true) && g_Ranking_Start == false )||
+		((GetLastPunchPhase() == PUNCH_PHASE_CLASH && g_ResultStart == true && RankingChangeCnt >= 600 && g_Ranking_Start == false)))
 	{
-		g_Ranking_Start = true;
 		InitRanking();
+		g_Ranking_Start = true;
+		g_ResultStart = false;
 	}
 	//普通のエンターキー
-	else if (Keyboard_IsTrigger(DIK_RETURN) && GetLastPunchPhase() == PUNCH_PHASE_CLASH && g_ResultStart == true ||
-		(GetLastPunchPhase() == PUNCH_PHASE_CLASH && g_ResultStart == true && RankingChangeCnt >= 600))
+	else if (Keyboard_IsTrigger(DIK_RETURN) && GetLastPunchPhase() == PUNCH_PHASE_CLASH && g_ResultStart == true && g_Ranking_Start == false ||
+		(GetLastPunchPhase() == PUNCH_PHASE_CLASH && g_ResultStart == true && RankingChangeCnt >= 600 && g_Ranking_Start == false))
 	{
 		g_Ranking_Start = true;
+		g_ResultStart = false;
 		InitRanking();
 	}
 	//追加部分1==========================================
@@ -114,15 +117,15 @@ void DrawResult(void)
 			//Sprite_Draw(TEXTURE_INDEX_BLONZERANK, (SCREEN_WIDTH - 600) / 2, 100.0f);
 			Sprite_Draw(TEXTURE_INDEX_BLONZERANK,
 				SCREEN_WIDTH / 2,
-				100.0f,
+				180.0f,
 				0,
 				0,
 				1200,
 				500,
 				1200 / 2,
 				500 / 2,
-				0.2f,
-				0.2f,
+				0.6f,
+				0.6f,
 				0.0f,
 				255);
 			//スコア（X位置Y位置　数値　桁数 拡大率X　拡大率Y  桁ごとのオフセット）
@@ -136,15 +139,15 @@ void DrawResult(void)
 			//Sprite_Draw(TEXTURE_INDEX_SILVERRANK, (SCREEN_WIDTH - 600) / 2, 100.0f);
 			Sprite_Draw(TEXTURE_INDEX_SILVERRANK,
 				SCREEN_WIDTH / 2,
-				175.0f,
+				180.0f,
 				0,
 				0,
 				1200,
 				500,
 				1200 / 2,
 				500 / 2,
-				0.5f,
-				0.5f,
+				0.6f,
+				0.6f,
 				0.0f,
 				255);
 			DrawScore(TEXTURE_INDEX_SILVERNUMBER, 270.0f, SCREEN_HEIGHT / 2, GetScore(), 6, 0.5f, 0.5f, 120.0f);
@@ -155,22 +158,22 @@ void DrawResult(void)
 			//Sprite_Draw(TEXTURE_INDEX_GOLDRANK, (SCREEN_WIDTH - 600) / 2, 100.0f);
 			Sprite_Draw(TEXTURE_INDEX_GOLDRANK,
 				SCREEN_WIDTH / 2,
-				100.0f,
+				180.0f,
 				0,
 				0,
 				1200,
 				500,
 				1200 / 2,
 				500 / 2,
-				0.2f,
-				0.2f,
+				0.6f,
+				0.6f,
 				0.0f,
 				255);
 			DrawScore(TEXTURE_INDEX_GOLDNUMBER, 270.0f, SCREEN_HEIGHT / 2, GetScore(), 6, 0.5f, 0.5f, 120.0f);
 		}
 
-		//シーン遷移指示テクスチャ
-		//シーン遷移の指示
+				//シーン遷移指示テクスチャ
+				//シーン遷移の指示
 		Sprite_Draw(TEXTURE_INDEX_SKIP_SCENE_CHANGE,
 			950.0f,
 			650.0f,
@@ -231,12 +234,30 @@ void DrawResult(void)
 			0.3f,
 			0.0f,
 			255);
+
 		//あなたのスコアは…
-		//Sprite_Draw(TEXTURE_INDEX_WHATSCORE, SCREEN_WIDTH - 1266, SCREEN_HEIGHT - 450);
+		Sprite_Draw(TEXTURE_INDEX_WHATSCORE, SCREEN_WIDTH - 1266, SCREEN_HEIGHT - 450);
 
 	}
 }
-
-bool GetRankingStart() {
+//ランキング開始フラグを取得
+bool GetRankingStart()
+{
 	return g_Ranking_Start;
+}
+//リザルト開始フラグを取得
+bool GetResultStart()
+{
+	return g_ResultStart;
+}
+//リザルト開始にするだけの関数、そういうこと
+void SetResultStart_true()
+{
+	g_ResultStart = true;
+}
+
+//リザルト終了にするだけの関数、そういうこと
+void SetResultStart_false()
+{
+	g_ResultStart = false;
 }

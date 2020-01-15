@@ -21,11 +21,15 @@ static const LPCSTR g_XFileList[XFILE_INDEX_MAX] =
 	"asset/Xfile/E_Leg_R_ex.x",
 	"asset/Xfile/E_Body_ex.x",
 
-	//月
-	"asset/Xfile/moon.x",
-
 	//リング
 	"asset/Xfile/Ling.x",
+
+	//月
+	"asset/Xfile/Moon.x",
+	//飛行機
+	"asset/Xfile/Airplane_2.x",
+	//UFO
+	"asset/Xfile/ufo.x"
 };
 
 //XFileを指定して読み込む関数
@@ -89,7 +93,7 @@ HRESULT LoadXFile(XMODEL *model, XFILE_INDEX index)
 				&model->pTextures[i])))
 			{
 				//エラー
-				MessageBox(NULL, "テクスチャの読み込みに失敗しました", NULL, MB_OK);
+				MessageBox(NULL, "テクスチャの読み込みに失敗しましたあああ", NULL, MB_OK);
 			}
 		}
 	}

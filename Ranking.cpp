@@ -31,6 +31,7 @@ int MyScoreMove;
 float g_RankingGlovePos;
 int RankingGloveMoveCnt;
 bool g_RankingPunchEffectFlg;
+bool g_RankingStartFlg;
 
 
 void InitRanking(void)
@@ -39,6 +40,7 @@ void InitRanking(void)
 	TitleChangeCnt = 0;
 	RankingDrawCnt = 0;
 	MyScoreMove = 0;
+	g_RankingStartFlg = true;
 
 	g_RankingGlovePos = 1220.0f;
 	RankingGloveMoveCnt = 0;
@@ -82,44 +84,46 @@ void UninitRanking(void)
 
 void UpdateRanking(void)
 {
-	DebugProc_Print((char*)"スコア：%d", GetScore());
-	//シーン遷移の秒数を数える
-	TitleChangeCnt++;
+	if (g_RankingStartFlg == true) {
+		DebugProc_Print((char*)"スコア：%d", GetScore());
+		//シーン遷移の秒数を数える
+		TitleChangeCnt++;
 
-	//シーン遷移
-	//シーン遷移の絵
-	RankingGloveMoveCnt++;
+		//シーン遷移
+		//シーン遷移の絵
+		RankingGloveMoveCnt++;
 
-	if (RankingGloveMoveCnt >= 40) {
-		if (g_RankingPunchEffectFlg == false) {
-			g_RankingGlovePos = 1170.0f;
-			g_RankingPunchEffectFlg = true;
-			RankingGloveMoveCnt = 0;
+		if (RankingGloveMoveCnt >= 40) {
+			if (g_RankingPunchEffectFlg == false) {
+				g_RankingGlovePos = 1170.0f;
+				g_RankingPunchEffectFlg = true;
+				RankingGloveMoveCnt = 0;
+			}
+			else if (g_RankingPunchEffectFlg == true) {
+				g_RankingGlovePos = 1220.0f;
+				g_RankingPunchEffectFlg = false;
+				RankingGloveMoveCnt = 0;
+			}
 		}
-		else if (g_RankingPunchEffectFlg == true) {
-			g_RankingGlovePos = 1220.0f;
-			g_RankingPunchEffectFlg = false;
-			RankingGloveMoveCnt = 0;
-		}
-	}
 
-	//でかいエンターを押したら
-	//5秒たったら
-	if (Keyboard_IsTrigger(DIK_NUMPADENTER) || 
-		TitleChangeCnt >= 600)
-	{
-		InitCamera();
-		InitPlayer();
-		SetScene(SCENE_INDEX_TITLE);
-	}
-	//スペースを押したら
-	//5秒たったら
-	else if (Keyboard_IsTrigger(DIK_SPACE) || 
+		//でかいエンターを押したら
+		//5秒たったら
+		if (Keyboard_IsTrigger(DIK_NUMPADENTER) ||
 			TitleChangeCnt >= 600)
-	{
-		InitCamera();
-		InitPlayer();
-		SetScene(SCENE_INDEX_TITLE);
+		{
+			InitCamera();
+			InitPlayer();
+			SetScene(SCENE_INDEX_TITLE);
+		}
+		//スペースを押したら
+		//5秒たったら
+		else if (Keyboard_IsTrigger(DIK_SPACE) ||
+			TitleChangeCnt >= 600)
+		{
+			InitCamera();
+			InitPlayer();
+			SetScene(SCENE_INDEX_TITLE);
+		}
 	}
 }
 

@@ -8,6 +8,7 @@
 #include "camera.h"
 #include "scene.h"
 #include "sound.h"
+#include "particle.h"
 
 float g_TitleGlovePos;
 int TitleGloveMoveCnt;
@@ -22,19 +23,25 @@ void InitTitle(void)
 	g_TitlePunchEffectFlg = false;
 
 	InitRing();
+	InitParticle();
 	Init_TitleCamera();
 	PlaySound(SOUND_LABEL_SE_HIT);
+
 }
 
 void UninitTitle(void)
 {
 	UninitRing();
+	UninitParticle();
+
 }
 
 void UpdateTitle(void)
 {
 	UpdateRing();
 	TitleGloveMoveCnt++;
+
+	UpdateParticle();
 
 	if (TitleGloveMoveCnt >= 40) {
 		if (g_TitlePunchEffectFlg == false) {
@@ -65,7 +72,7 @@ void DrawTitle(void)
 	DrawRing();
 	//タイトル背景
 	//Sprite_Draw(TEXTURE_INDEX_TITLE_BG, 0.0f, 0.0f);
-
+	DrawParticle();
 	//タイトルロゴ
 	Sprite_Draw(TEXTURE_INDEX_TITLE_LOGO,
 		SCREEN_WIDTH / 2,

@@ -15,3 +15,6 @@ void UninitResult(void);
 void UpdateResult(void);
 void DrawResult(void);
 bool GetRankingStart();
+bool GetResultStart();
+void SetResultStart_true();
+void SetResultStart_false();

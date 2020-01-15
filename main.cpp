@@ -169,7 +169,7 @@ int APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 			if ((dwCurrentTime - dwExecLastTime) >= (1000 / 60))
 			{
 #ifdef _DEBUG
-				//DebugProc_Print((char *)"FPS:%d\n", g_nCountFPS);
+				DebugProc_Print((char *)"FPS:%d\n", g_nCountFPS);
 				//DebugProc_Print((char *)"FPS:%d\n", sizeof(LPDIRECT3DDEVICE9));
 #endif
 				dwExecLastTime = dwCurrentTime;

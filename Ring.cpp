@@ -8,7 +8,7 @@
 #include "sprite.h"
 
 //モデルの数
-#define RING_MONEL_NUM		(3)
+#define RING_MODEL_NUM		(1)
 
 // 移動量
 #define	MODEL_MOVE		(1.0f)
@@ -57,7 +57,7 @@ void DrawRing()
 	D3DXMatrixIdentity(&g_mtxRingWorld);
 
 	//モデル分繰り返す
-	for (int j = 0; j < RING_MONEL_NUM; j++)
+	for (int j = 0; j < RING_MODEL_NUM; j++)
 	{
 		//ワールドマトリクス作って適用
 		p_D3DDevice->SetTransform(D3DTS_WORLD, MakeWorldMatrix(&g_Ring_model[j], &g_mtxRingWorld));

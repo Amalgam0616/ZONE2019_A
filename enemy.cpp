@@ -9,6 +9,13 @@
 #include "texture.h"
 #include "player.h"
 
+#include "sky.h"
+#include "game.h"
+#include "Roof.h"
+#include "result.h"
+#include "particle.h"
+#include "score.h"
+
 //定数定義 ==========================================================================
 
 //プレイヤーに使うモデル数
@@ -18,7 +25,7 @@
 #define ENEMY_POS_Z (26.0f)
 
 //アッパーで吹っ飛ぶスピード
-#define UPPERED_SPEED (10.0f)
+#define UPPERED_SPEED (15.0f)
 
 //スローエリア座標
 #define		SLOW_IN		(23.0f)
@@ -136,6 +143,7 @@ static const int g_EndFrameList[PPI_MAX] =
 bool SlowFlg;
 
 //基本関数定義 ======================================================================
+void ENEMY_OUTFLYAWAY();
 
 //初期化
 HRESULT InitEnemy()
@@ -150,6 +158,7 @@ HRESULT InitEnemy()
 			FAILED(LoadXFile(&g_Enemy[1], XFILE_INDEX_E_HEAD_001)) ||		//頭
 			FAILED(LoadXFile(&g_Enemy[2], XFILE_INDEX_E_GROBE_L_001)) ||	//左手(前からみて右)
 			FAILED(LoadXFile(&g_Enemy[3], XFILE_INDEX_E_GROBE_R_001)) ||	//右手(前からみて左)
+			
 			FAILED(LoadXFile(&g_Enemy[4], XFILE_INDEX_E_LEG_L_001)) ||		//左足(前からみて右)
 			FAILED(LoadXFile(&g_Enemy[5], XFILE_INDEX_E_LEG_R_001)) ||		//右足(前からみて左)
 			FAILED(LoadXFile(&g_Enemy[6], XFILE_INDEX_E_DMGBODY_001)))		//くの字の胴体
@@ -432,7 +441,7 @@ void UpdateEnemy()
 
 
 	//デバッグ用
-	DebugProc_Print((char *)"パンチ終了ラインZ座標：[%f]\n", g_PunchEndLine);
+	DebugProc_Print((char *)"最後のパンチのフェーズ管理：[%d]\n", g_Last_Punch_Phase);
 	DebugProc_Print((char *)"i：[%d]\n", i);
 	DebugProc_Print((char *)"座標：[X:%f Y:%f Z:%f]\n", g_Enemy[i].Pos.x, g_Enemy[i].Pos.y, g_Enemy[i].Pos.z);
 	DebugProc_Print((char *)"角度：[X:%f Y:%f Z:%f]\n", D3DXToDegree(g_Enemy[i].Rot.x), D3DXToDegree(g_Enemy[i].Rot.y), D3DXToDegree(g_Enemy[i].Rot.z));
@@ -450,7 +459,7 @@ void UpdateEnemy()
 
 	if (Keyboard_IsPress(DIK_I))
 	{
-	
+
 	}
 
 	//デバック用（回転/シフト押しながらだと移動）
@@ -532,7 +541,7 @@ void DrawEnemy()
 
 	//追加部分7==========================================
 	if (g_Last_Punch_Phase < PUNCH_PHASE_FLYAWAY)
-	//追加部分7==========================================
+		//追加部分7==========================================
 	{
 		//モデル分繰り返す
 		for (int j = 0; j < ENEMY_MODEL_NUM - 1; j++)
@@ -770,7 +779,8 @@ void RightPunch()
 
 			if (g_PunchFrameCnt == 1)
 			{
-				Punch_Charge_Effect();
+				//Punch_Charge_Effect();
+				Charge_Start();
 				g_Enemy[3].Rot = D3DXVECTOR3(D3DXToRadian(0.0f), D3DXToRadian(285.0f), D3DXToRadian(10.0f));
 				PunchLR = true;
 			}
@@ -870,7 +880,8 @@ void LeftPunch()
 
 			if (g_PunchFrameCnt == 1)
 			{
-				Punch_Charge_Effect();
+				//Punch_Charge_Effect();
+				Charge_Start();
 				g_Enemy[2].Rot = D3DXVECTOR3(D3DXToRadian(0.0f), D3DXToRadian(75.0f), D3DXToRadian(10.0f));
 				PunchLR = false;
 			}
@@ -971,7 +982,8 @@ void Right_R_FLASH_PUNCH()
 		if (g_PunchFrameCnt == 1)
 		{
 			PunchLR = true;
-			Punch_Charge_Effect();
+			Charge_Start();
+			//Punch_Charge_Effect();
 		}
 
 	}
@@ -1071,7 +1083,8 @@ void  Left_R_FLASH_PUNCH()
 		if (g_PunchFrameCnt == 1)
 		{
 			PunchLR = false;
-			Punch_Charge_Effect();
+			Charge_Start();
+			//Punch_Charge_Effect();
 		}
 	}
 	else if (g_PunchPhase == PUNCH_PHASE_SWING)
@@ -1187,7 +1200,8 @@ void DunkPunch()
 				g_Enemy[2].Pos = D3DXVECTOR3(7.0f, 15.0f, ENEMY_POS_Z);
 				//右腕
 				g_Enemy[3].Pos = D3DXVECTOR3(-7.0f, 15.0f, ENEMY_POS_Z);
-				Punch_Charge_Effect();
+				Charge_Start();
+				//Punch_Charge_Effect();
 				PunchLR = true;
 			}
 		}
@@ -1304,6 +1318,7 @@ void DunkPunch()
 		}
 	}
 }
+
 //ジャンピングパンチ左(PPI_L_JUMP_PUNCH)(作成者：Amalgam、No.04)
 void JumpPunch_L()
 {
@@ -1317,6 +1332,12 @@ void JumpPunch_L()
 	{//予備動作
 		if (g_PunchFrameCnt < PPI_JP_START_FRAME)
 		{
+			if (g_PunchFrameCnt == 1)
+			{
+				Charge_Start();
+				//Punch_Charge_Effect();
+				PunchLR = true;
+			}
 			//グッ
 			if (g_PunchFrameCnt < 10)
 			{
@@ -1405,7 +1426,7 @@ void JumpPunch_L()
 				g_Enemy[2].Rot = D3DXVECTOR3(D3DXToRadian(10.0f), D3DXToRadian(120.0f), D3DXToRadian(0.0f));
 			}
 			//グーッ2(エフェクト入れるならここ)
-			else if(g_PunchFrameCnt > 70 && g_PunchFrameCnt < 85)
+			else if (g_PunchFrameCnt > 70 && g_PunchFrameCnt < 85)
 			{
 				//左腕
 				g_Enemy[2].Pos.x += 0.09f;
@@ -1414,6 +1435,7 @@ void JumpPunch_L()
 
 				PunchLR = false;
 			}
+
 		}
 		else
 		{
@@ -1536,6 +1558,13 @@ void JumpPunch_R()
 	{//予備動作
 		if (g_PunchFrameCnt < PPI_JP_START_FRAME)
 		{
+			if (g_PunchFrameCnt == 1)
+			{
+				Charge_Start();
+				//Punch_Charge_Effect();
+				PunchLR = false;
+			}
+
 			//グッ
 			if (g_PunchFrameCnt < 10)
 			{
@@ -1743,6 +1772,7 @@ void JumpPunch_R()
 	}
 }
 
+
 //追加部分8===============================
 //最後のパンチ
 void Last_Punch()
@@ -1756,7 +1786,7 @@ void Last_Punch()
 		if (g_PunchFrameCnt < LAST_PUNCH_CHAGE_FRAME + 60)
 		{
 			//溜めをつくるために先に動きが止まる
-			if (g_PunchFrameCnt < LAST_PUNCH_CHAGE_FRAME )
+			if (g_PunchFrameCnt < LAST_PUNCH_CHAGE_FRAME)
 			{
 				g_Enemy[1].Rot.x += D3DXToRadian(20.0f) / LAST_PUNCH_CHAGE_FRAME;
 				g_Enemy[2].Pos += D3DXVECTOR3(-7.0f / LAST_PUNCH_CHAGE_FRAME, 15.0f / LAST_PUNCH_CHAGE_FRAME, -5.0f / LAST_PUNCH_CHAGE_FRAME);
@@ -1767,7 +1797,7 @@ void Last_Punch()
 		{
 			g_PunchFrameCnt = 0;
 			//フェーズ進行
-			g_Last_Punch_Phase=PUNCH_PHASE_WAVE;
+			g_Last_Punch_Phase = PUNCH_PHASE_WAVE;
 		}
 	}
 	else if (g_Last_Punch_Phase == PUNCH_PHASE_WAVE)
@@ -1776,9 +1806,9 @@ void Last_Punch()
 		{
 			//波動モーション
 			g_Enemy[1].Rot = D3DXVECTOR3(D3DXToRadian(22.0f), D3DXToRadian(0.0f), D3DXToRadian(0.0f));
-			g_Enemy[2].Pos = D3DXVECTOR3(10.0f,14.0f,22.6f);
+			g_Enemy[2].Pos = D3DXVECTOR3(10.0f, 14.0f, 22.6f);
 			g_Enemy[2].Rot = D3DXVECTOR3(D3DXToRadian(10.0f), D3DXToRadian(192.0f), D3DXToRadian(90.0f));
-			g_Enemy[3].Pos = D3DXVECTOR3(-11.0f,15.6f,26.0f);
+			g_Enemy[3].Pos = D3DXVECTOR3(-11.0f, 15.6f, 26.0f);
 			g_Enemy[3].Rot = D3DXVECTOR3(D3DXToRadian(15.0f), D3DXToRadian(180.0f), D3DXToRadian(270.0f));
 
 			//プレイヤーが吹き飛ばされる
@@ -1799,24 +1829,24 @@ void Last_Punch()
 		if (g_PunchFrameCnt < LAST_PUNCH_SET_FRAME)
 		{
 			//構えをとる
-			g_Enemy[0].Rot += D3DXVECTOR3(0, D3DXToRadian(60.0f)/ LAST_PUNCH_SET_FRAME, 0);
-			g_Enemy[1].Pos += D3DXVECTOR3(0,-1.0f/ LAST_PUNCH_SET_FRAME,0);
+			g_Enemy[0].Rot += D3DXVECTOR3(0, D3DXToRadian(60.0f) / LAST_PUNCH_SET_FRAME, 0);
+			g_Enemy[1].Pos += D3DXVECTOR3(0, -1.0f / LAST_PUNCH_SET_FRAME, 0);
 			g_Enemy[1].Rot += D3DXVECTOR3(D3DXToRadian(-20.0f) / LAST_PUNCH_SET_FRAME, 0, 0);
-			g_Enemy[2].Pos += D3DXVECTOR3(-10.0f/ LAST_PUNCH_SET_FRAME,3.4f/ LAST_PUNCH_SET_FRAME,0);
-			g_Enemy[2].Rot += D3DXVECTOR3(D3DXToRadian(5.0f)/ LAST_PUNCH_SET_FRAME, D3DXToRadian(50.0f)/LAST_PUNCH_SET_FRAME, 0);
-			g_Enemy[3].Pos += D3DXVECTOR3(4.0f/ LAST_PUNCH_SET_FRAME,2.4f/ LAST_PUNCH_SET_FRAME,6.0f/ LAST_PUNCH_SET_FRAME);
-			g_Enemy[3].Rot += D3DXVECTOR3(D3DXToRadian(-5.0f)/ LAST_PUNCH_SET_FRAME, D3DXToRadian(100.0f)/ LAST_PUNCH_SET_FRAME, D3DXToRadian(100.0f)/ LAST_PUNCH_SET_FRAME);
-			g_Enemy[4].Pos += D3DXVECTOR3(-7.0f/ LAST_PUNCH_SET_FRAME,0.0f/ LAST_PUNCH_SET_FRAME,-10.0f/ LAST_PUNCH_SET_FRAME);
-			g_Enemy[4].Rot += D3DXVECTOR3(0, D3DXToRadian(12.0f)/ LAST_PUNCH_SET_FRAME, 0);
-			g_Enemy[5].Pos += D3DXVECTOR3(0,0,10.0f/ LAST_PUNCH_SET_FRAME);
+			g_Enemy[2].Pos += D3DXVECTOR3(-10.0f / LAST_PUNCH_SET_FRAME, 3.4f / LAST_PUNCH_SET_FRAME, 0);
+			g_Enemy[2].Rot += D3DXVECTOR3(D3DXToRadian(5.0f) / LAST_PUNCH_SET_FRAME, D3DXToRadian(50.0f) / LAST_PUNCH_SET_FRAME, 0);
+			g_Enemy[3].Pos += D3DXVECTOR3(4.0f / LAST_PUNCH_SET_FRAME, 2.4f / LAST_PUNCH_SET_FRAME, 6.0f / LAST_PUNCH_SET_FRAME);
+			g_Enemy[3].Rot += D3DXVECTOR3(D3DXToRadian(-5.0f) / LAST_PUNCH_SET_FRAME, D3DXToRadian(100.0f) / LAST_PUNCH_SET_FRAME, D3DXToRadian(100.0f) / LAST_PUNCH_SET_FRAME);
+			g_Enemy[4].Pos += D3DXVECTOR3(-7.0f / LAST_PUNCH_SET_FRAME, 0.0f / LAST_PUNCH_SET_FRAME, -10.0f / LAST_PUNCH_SET_FRAME);
+			g_Enemy[4].Rot += D3DXVECTOR3(0, D3DXToRadian(12.0f) / LAST_PUNCH_SET_FRAME, 0);
+			g_Enemy[5].Pos += D3DXVECTOR3(0, 0, 10.0f / LAST_PUNCH_SET_FRAME);
 			g_Enemy[5].Rot += D3DXVECTOR3(D3DXToRadian(-20.0f) / LAST_PUNCH_SET_FRAME, 0, D3DXToRadian(12.0f) / LAST_PUNCH_SET_FRAME);
 
 		}
 		else
 		{
 			g_Enemy[2].Pos += D3DXVECTOR3(10.0f, 0, 10.0f);
-			g_Enemy[3].Pos += D3DXVECTOR3(0,0,-10.0f);
-			
+			g_Enemy[3].Pos += D3DXVECTOR3(0, 0, -10.0f);
+
 			g_PunchFrameCnt = 0;
 			//フェーズ進行
 			g_Last_Punch_Phase = PUNCH_PHASE_PUNCH;
@@ -1828,9 +1858,9 @@ void Last_Punch()
 		{
 			for (int i = 0; i < ENEMY_MODEL_NUM; i++)
 			{
-				g_Enemy[i].Pos += D3DXVECTOR3(0, 0.5f/LAST_PUNCH_PUNCH_FRAME, -60.0f/LAST_PUNCH_PUNCH_FRAME);
+				g_Enemy[i].Pos += D3DXVECTOR3(0, 0.5f / LAST_PUNCH_PUNCH_FRAME, -60.0f / LAST_PUNCH_PUNCH_FRAME);
 			}
-			g_Enemy[3].Pos +=D3DXVECTOR3(5.0f / LAST_PUNCH_PUNCH_FRAME,-8.0f/LAST_PUNCH_PUNCH_FRAME, -10.0f/LAST_PUNCH_PUNCH_FRAME);
+			g_Enemy[3].Pos += D3DXVECTOR3(5.0f / LAST_PUNCH_PUNCH_FRAME, -8.0f / LAST_PUNCH_PUNCH_FRAME, -10.0f / LAST_PUNCH_PUNCH_FRAME);
 
 		}
 		else
@@ -1849,7 +1879,13 @@ void Last_Punch()
 			//フェーズ進行
 			g_Last_Punch_Phase = PUNCH_PHASE_STOP;
 		}
-	
+		else if (Keyboard_IsTrigger(DIK_NUMPADENTER))//後で変えて
+		{
+
+			g_PunchFrameCnt = 0;
+			//フェーズ進行
+			g_Last_Punch_Phase = PUNCH_PHASE_STOP;
+		}
 	}
 	else if (g_Last_Punch_Phase == PUNCH_PHASE_STOP)
 	{
@@ -1872,7 +1908,7 @@ void Last_Punch()
 		}
 		else
 		{
-			
+
 
 			g_PunchFrameCnt = 0;
 			//フェーズ進行
@@ -1884,7 +1920,7 @@ void Last_Punch()
 		if (g_PunchFrameCnt < LAST_PUNCH_YOIN_FRAME)
 		{
 
-			
+
 		}
 		else
 		{
@@ -1927,6 +1963,11 @@ void Last_Punch()
 		}
 		else
 		{
+			if (!GetSkyFlag())
+			{
+				//天井割れたら空の描画にうつるためフラグをtrueに変更（１回のみ）
+				SetSkyFlag_ture();
+			}
 			g_PunchFrameCnt = 0;
 			g_Last_Punch_Phase = PUNCH_PHASE_OUTFLYING;
 		}
@@ -1934,27 +1975,55 @@ void Last_Punch()
 	else if (g_Last_Punch_Phase == PUNCH_PHASE_OUTFLYING)
 	{
 		//会場の外の処理はここに
-		if (g_PunchFrameCnt < LAST_PUNCH_FLYING_FRAME)
+		if (g_PunchFrameCnt < LAST_PUNCH_OUTFLYING_FRAME)
 		{
-
+			//ENEMY_OUTFLYAWAY();
+			
 		}
 		else
 		{
 			g_PunchFrameCnt = 0;
 			g_Last_Punch_Phase = PUNCH_PHASE_CLASH;
+
 		}
+		AddScore(100);
 	}
 	else if (g_Last_Punch_Phase == PUNCH_PHASE_CLASH)
 	{
 		//目標物にぶつかったときの処理はこの中に
-		if (g_PunchFrameCnt < LAST_PUNCH_FLYING_FRAME)
+		if (g_PunchFrameCnt < LAST_PUNCH_HIT_FRAME)
 		{
+			
+			//月が描画された状態で
+			if (GetMoonFlag())
+			{
+				
+				//月よりも↓にいたら敵の座標を月に近づくよう動かす（10.0fは頭の分ちょっととった）
+				if (g_Enemy[1].Pos.y + 6.0f < GetMoonPos_y())
+				{
 
+					AddScore(100);
+					for (int i = 1; i < 7; i++)
+					{
+						
+						g_Enemy[i].Pos += D3DXVECTOR3(0.0f, 1.2f, 0.6f);
+					}
+				}
+				//月に衝突したら
+				else
+				{
+					//リザルトシーンに遷移
+					if (!GetResultStart())
+					{
+						SetResultStart_true();
+					}
+				}
+			}
 		}
 		else
 		{
 			g_PunchFrameCnt = 0;
-		
+
 		}
 	}
 }
@@ -1972,9 +2041,16 @@ void ENEMY_FLYAWAY()
 	}
 	else
 	{
-		for (int i = 1; i < 7; i++)
+		//天井割れるまで飛ぶ
+		if (g_Enemy[1].Pos.y < ROOF_Y + 100.0f)
 		{
-			g_Enemy[i].Pos += D3DXVECTOR3(0.0f, 30.0f, 10.0f );
+			for (int i = 1; i < 7; i++)
+			{
+				g_Enemy[i].Pos += D3DXVECTOR3(0.0f, 30.0f, 10.0f);
+			}
+		}
+		else
+		{
 		}
 	}
 }
@@ -2034,4 +2110,19 @@ LAST_PUNCH_PHASE GetLastPunchPhase()
 {
 	return g_Last_Punch_Phase;
 }
-//追加部分9===============================
+//追加
+
+void ENEMY_OUTFLYAWAY()
+{
+	g_FLYAWAY_Cnt++;
+
+	for (int i = 1; i < 7; i++)
+	{
+		g_Enemy[i].Pos += D3DXVECTOR3(0.0f, 15.0f, 5.0f);
+	}
+
+}
+int Getg_PunchFrameCnt()
+{
+	return g_PunchFrameCnt;
+}

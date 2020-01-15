@@ -20,8 +20,11 @@
 #define		LAST_PUNCH_STOP_FRAME	(30)
 #define		LAST_PUNCH_YOIN_FRAME	(120)
 #define		LAST_PUNCH_FLYAWAY_FRAME (10)
-#define		LAST_PUNCH_FLYING_FRAME	(330)	//余裕をもって11秒取っておいた(これ以降は要相談)
-
+//変更 330→100(天井に穴あくまで）、破片実装したらもうちょいフレーム足すかも
+#define		LAST_PUNCH_FLYING_FRAME	(300)	//余裕をもって11秒取っておいた(これ以降は要相談)
+//追加
+#define		LAST_PUNCH_OUTFLYING_FRAME	(660)	//余裕をもって11秒取っておいた(これ以降は要相談)
+#define		LAST_PUNCH_HIT_FRAME	(330)
 
 //吹き飛ばさるときのフレーム
 #define		FLYAWAY_MOVE1_FRAME		(60)
@@ -171,3 +174,6 @@ PUNCH_PATTERN_INDEX GetPunchIndex();
 //最後のパンチのGetter
 LAST_PUNCH_PHASE GetLastPunchPhase();
 //追加部分5==========================================
+
+//追加
+int Getg_PunchFrameCnt();

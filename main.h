@@ -35,6 +35,8 @@ typedef struct
 	D3DXVECTOR3 nor;	// 法線ベクトル
 	D3DCOLOR col;		// 頂点カラー
 	D3DXVECTOR2 tex;	// テクスチャ座標
+
+
 } VERTEX_3D;
 
 // ３Ｄポリゴン頂点フォーマット( 頂点座標[3D] / 法線 / 頂点カラー / テクスチャ座標 )

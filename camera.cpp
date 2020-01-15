@@ -1,4 +1,3 @@
-
 #include "camera.h"
 #include "myDirect3D.h"
 #include "input.h"
@@ -6,6 +5,8 @@
 #include "player.h"
 #include "enemy.h"
 #include "scene.h"
+#include "sky.h"
+#include "game.h"
 //=============================================================================
 // マクロ定義
 //=============================================================================
@@ -49,18 +50,6 @@
 #define YSPIN_TIME 6.0f
 #define XSPIN_TIME 3.0f
 
-//=============================================================================
-// カメラの構造体
-//=============================================================================
-typedef struct
-{
-	D3DXVECTOR3 posV;				// 視点
-	D3DXVECTOR3 posR;				// 注視点
-	D3DXVECTOR3 vecU;				// 上方向ベクトル
-	D3DXMATRIX mtxProjection;		// プロジェクションマトリックス
-	D3DXMATRIX mtxView;				// ビューマトリックス
-
-}CAMERA;
 
 //=============================================================================
 // グローバル変数
@@ -148,7 +137,7 @@ void UpdateCamera(void)
 		//ゲームの時の更新処理
 
 		g_Player_Camera = true;
-	
+
 		//追加部分1(ここにあったデバック処理は恐らく使わない＆別のファイルに退避済みなので消してOK)==========================================
 		//最後のパンチのカメラワーク関連
 		if (GetLastPunchPhase() == PUNCH_PHASE_SET)
@@ -176,7 +165,7 @@ void UpdateCamera(void)
 		}
 		else if (GetLastPunchPhase() >= PUNCH_PHASE_FLYAWAY)
 		{
-				//敵の顔をカメラの中心点にして吹っ飛んだ敵を追う
+			//敵の顔をカメラの中心点にして吹っ飛んだ敵を追う
 			Finish_CameraMove();
 		}
 		else
@@ -190,7 +179,7 @@ void UpdateCamera(void)
 	{
 		//ランキングの時の更新処理
 	}
-	
+
 }
 
 //=============================================================================
@@ -272,7 +261,7 @@ void Camera_Rot_X()
 D3DXVECTOR3 Camera_Length(int Return_Num)
 {
 	D3DXVECTOR3 leng = D3DXVECTOR3(0.0f, 0.0f, 0.0f);
-	
+
 	switch (Return_Num)
 	{
 	case 0:
@@ -364,10 +353,22 @@ void LastPunchCamera4()
 {
 
 }
-
+//追加部分2==========================================
 void Finish_CameraMove()
 {
 	g_Camera.posR = D3DXVECTOR3((GetEnemy() + 1)->Pos);
+	if (GetSkyFlag())
+	{
+		//g_Camera.posV.x = (GetEnemy() + 1)->Pos.x;
+		g_Camera.posV.y = (GetEnemy() + 1)->Pos.y;
+		g_Camera.posV.z = (GetEnemy() + 1)->Pos.z - 20.0f;
+	}
 }
 
-//追加部分2==========================================
+//=============================================================================
+// カメラの取得
+//=============================================================================
+CAMERA *GetCamera(void)
+{
+	return &g_Camera;
+}

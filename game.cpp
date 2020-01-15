@@ -6,37 +6,48 @@
 #include "sound.h"
 #include "result.h"
 #include "field.h"
-#include "field_yoko.h"
 #include "Roof.h"
 #include "floor.h"
 #include "Effect.h"
 #include "camera.h"
 #include "Ring.h"
-#include "Ranking.h"
+#include "sky.h"
+#include "particle.h"
 #include "gauge.h"
+#include "Ranking.h"
+
+
+static bool SkyFlag;
 
 void InitGame(void)
 {
+	SkyFlag = false;
+
 	InitScore();
 
-	InitField_Yoko();
 	InitField();
 	InitRoof();
 	InitFloor();
 
 	InitRing();
+
 	InitEnemy();
 	InitPlayer();
 	Init_GameCamera();
-	
+
+	InitSky();
+
 	InitEffect();
 	InitResult();
 	InitGauge();
+	InitParticle();
+	if (GetRankingStart() == true) {
+		DrawRanking();
+	}
 }
 
 void UninitGame(void)
 {
-	UninitField_Yoko();
 	UninitField();
 	UninitRoof();
 	UninitFloor();
@@ -45,10 +56,12 @@ void UninitGame(void)
 	UninitEnemy();
 	UninitPlayer();
 
+	UninitSky();
 	UninitEffect();
-	UninitResult();
 	UninitGauge();
+	UninitParticle();
 
+	UninitResult();
 	if (GetRankingStart() == true) {
 		UninitRanking();
 	}
@@ -56,47 +69,84 @@ void UninitGame(void)
 
 void UpdateGame(void)
 {
-	UpdateField_Yoko();
-	UpdateField();
-	UpdateRoof();
-	UpdateFloor();
+	if (!GetResultStart())
+	{
+		if (!SkyFlag)
+		{
+			UpdateField();
+			UpdateRoof();
+			UpdateFloor();
 
-	UpdateRing();
-	UpdatePlayer();
+			UpdateRing();
+			UpdateGauge();
+			UpdatePlayer();
+		}
+	}
 	UpdateEnemy();
+	UpdateParticle();
+
+	if (SkyFlag)
+	{
+		UpdateSky();
+	}
 
 	UpdateEffect();
-	UpdateResult();
-	UpdateGauge();
 
 	if (GetRankingStart() == true) {
 		UpdateRanking();
+	}
+
+	if (GetResultStart())
+	{
+		UpdateResult();
 	}
 }
 
 void DrawGame(void)
 {
-	DrawField_Yoko();
-	DrawField();
-	DrawRoof();
-	DrawFloor();
+	if (!GetResultStart())
+	{
+		if (!SkyFlag)
+		{
+			DrawField();
+			DrawRoof();
+			DrawFloor();
+			DrawRing();
+		}
+	}
 
-	DrawRing();
 	DrawEnemy();
-	DrawEffect();
+	DrawParticle();
 
-	DrawPlayer();
-
+	if (!SkyFlag)
+	{
+		DrawPlayer();
+		DrawGauge();
+	}
+	if (SkyFlag)
+	{
+		DrawSky();
+	}
 
 	SlowEffect();
 
-	DrawResult();
-	
+	if (GetResultStart())
+	{
+		DrawResult();
+	}
+
 	if (GetRankingStart() == true) {
 		DrawRanking();
 	}
-
-	DrawGauge();
-	DrawScore(TEXTURE_INDEX_WHITENUMBER, 1000.0f, 10.0f, GetScore(), 6, 0.15f, 0.15f, 40.0f);
-
+	else {
+		DrawScore(TEXTURE_INDEX_WHITENUMBER, 1000.0f, 10.0f, GetScore(), 6, 0.15f, 0.15f, 40.0f);
+	}
+}
+void SetSkyFlag_ture(void)
+{
+	SkyFlag = true;
+}
+bool GetSkyFlag(void)
+{
+	return SkyFlag;
 }

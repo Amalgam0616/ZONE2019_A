@@ -52,6 +52,18 @@ static const TextureFile g_TextureFiles[] =
 	{ "asset/texture/gauge_2.png",241, 1024},
 	{ "asset/texture/gauge_3.png",241, 1024},
 
+	{ "asset/texture/effect000.jpg",80, 80},
+
+	{ "asset/texture/Sky.png",1280, 6480},
+	{ "asset/texture/cloud1.png",512, 400},
+	{ "asset/texture/cloud2.png",512, 400},
+	{ "asset/texture/cloud3.png",512, 400},
+
+	{"asset/texture/UFO.png",300,150}
+
+	//{ "asset/Xfile/Moon.png",1024, 512},
+
+
 };
 
 static const int TEXTURE_FILE_COUNT = sizeof(g_TextureFiles) / sizeof(g_TextureFiles[0]);

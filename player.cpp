@@ -164,12 +164,12 @@ void UpdatePlayer()
 	{
 		Step_Stop = true;
 	}*/
-	
 
-	if (GetPunchIndex()==LAST_PUNCH)
+
+	if (GetPunchIndex() == LAST_PUNCH)
 	{
 		Step_Stop = true;
-		
+
 		if (Keyboard_IsTrigger(DIK_M))
 		{
 			PlayerPosReset();
@@ -189,7 +189,7 @@ void UpdatePlayer()
 		if (GetPunch_Flg())
 		{
 			//キー入力に応じてステート変化
-			if (!isAction && Keyboard_IsTrigger(DIK_D) && !g_DodgeFlg)
+			if (!isAction && Keyboard_IsRelease(DIK_D) && !g_DodgeFlg)
 			{//右回避
 				g_PlAnimState = PLANIME_INDEX_DODGE_L;
 				//アニメーションフレーム初期化
@@ -229,7 +229,7 @@ void UpdatePlayer()
 					g_DodgeFlg = true;
 				}
 			}
-			else if (!isAction && Keyboard_IsTrigger(DIK_A) && !g_DodgeFlg)
+			else if (!isAction && Keyboard_IsRelease(DIK_A) && !g_DodgeFlg)
 			{//左回避
 				//ステート変化
 				g_PlAnimState = PLANIME_INDEX_DODGE_R;
@@ -310,7 +310,7 @@ void UpdatePlayer()
 
 	//回避ボタンがどっちも押されていたらアニメーションストップを解除する
 	//デバッグの時は「押されていないとき」にしといて
-	if ((AnimStopFlg && !Keyboard_IsPress(DIK_A) && !Keyboard_IsPress(DIK_D)))
+	if ((AnimStopFlg && Keyboard_IsPress(DIK_A) && Keyboard_IsPress(DIK_D)))
 	{
 		AnimStopFlg = false;
 	}
@@ -339,10 +339,16 @@ void UpdatePlayer()
 			g_Finish_Flg = true;
 			Finish_Punch_Pos();
 		}
+		else if (Keyboard_IsTrigger(DIK_NUMPADENTER))
+		{
+			g_Finish_Flg = true;
+			Finish_Punch_Pos();
+		}
 	}
 
+	
 	//g_Finish_FLgが正になったとき通るとFinishPunchを撃つ
-	if(GetLastPunchPhase()==PUNCH_PHASE_STOP)
+	if (GetLastPunchPhase() == PUNCH_PHASE_STOP)
 	{
 		if (g_Finish_Flg)
 		{
@@ -350,7 +356,7 @@ void UpdatePlayer()
 		}
 	}
 	//追加部分4==========================================
-	
+
 }
 //描画
 void DrawPlayer()
@@ -376,13 +382,13 @@ void DrawPlayer()
 			p_D3DDevice->SetTexture(0, g_Player[j].pTextures[i]);
 			//透過度設定
 			//避けるフェーズ中グローブだけ透明にしない
-			if (GetLastPunchPhase() < PUNCH_PHASE_SLOW) 
+			if (GetLastPunchPhase() < PUNCH_PHASE_SLOW)
 			{
 				if (j == 2 || j == 3)
 				{
 					g_Player[j].pMaterials[i].Diffuse.a = 1.0f;
 				}
-				else 
+				else
 				{
 					g_Player[j].pMaterials[i].Diffuse.a = 0.3f;
 				}
@@ -475,7 +481,7 @@ void Animation()
 				if ((g_PlAnimState == PLANIME_INDEX_DODGE_L) || (g_PlAnimState == PLANIME_INDEX_DODGE_R))
 				{
 					//デバッグの時は！つけないで、フットペダルつけるときは！つけて。
-					if ((Keyboard_IsPress(DIK_D)) || (Keyboard_IsPress(DIK_A)))
+					if (!Keyboard_IsPress(DIK_D) || !Keyboard_IsPress(DIK_A))
 					{
 						AnimStopFlg = true;
 					}
@@ -585,18 +591,18 @@ void AnimMovingParFrame()
 //FinshPunchのポジションと関数
 void Finish_Punch_Pos()
 {
-	g_Player[0].Pos += D3DXVECTOR3(0,0,0);
-	g_Player[0].Rot += D3DXVECTOR3(D3DXToRadian(-20.0f),0,0);
-	g_Player[1].Pos += D3DXVECTOR3(0,0,3.0f);
-	g_Player[1].Rot += D3DXVECTOR3(D3DXToRadian(-30.0f),0,0);
+	g_Player[0].Pos += D3DXVECTOR3(0, 0, 0);
+	g_Player[0].Rot += D3DXVECTOR3(D3DXToRadian(-20.0f), 0, 0);
+	g_Player[1].Pos += D3DXVECTOR3(0, 0, 3.0f);
+	g_Player[1].Rot += D3DXVECTOR3(D3DXToRadian(-30.0f), 0, 0);
 	g_Player[2].Pos += D3DXVECTOR3(0, 0, 6.0f);
 	g_Player[2].Rot += D3DXVECTOR3(D3DXToRadian(-80.0f), D3DXToRadian(0.0f), D3DXToRadian(0.0f));
-	g_Player[3].Pos += D3DXVECTOR3(0,0,0);
-	g_Player[3].Rot += D3DXVECTOR3(0,0,0);
-	g_Player[4].Pos += D3DXVECTOR3(0,0,5.0f);
-	g_Player[4].Rot += D3DXVECTOR3(0,0,0);
-	g_Player[5].Pos += D3DXVECTOR3(0,0,-5.0f);
-	g_Player[5].Rot += D3DXVECTOR3(D3DXToRadian(-10.0f),0,0);
+	g_Player[3].Pos += D3DXVECTOR3(0, 0, 0);
+	g_Player[3].Rot += D3DXVECTOR3(0, 0, 0);
+	g_Player[4].Pos += D3DXVECTOR3(0, 0, 5.0f);
+	g_Player[4].Rot += D3DXVECTOR3(0, 0, 0);
+	g_Player[5].Pos += D3DXVECTOR3(0, 0, -5.0f);
+	g_Player[5].Rot += D3DXVECTOR3(D3DXToRadian(-10.0f), 0, 0);
 }
 
 void Finish_Punch()
