@@ -155,6 +155,9 @@ void ENEMY_FLYAWAY();
 //パンチ後に元の位置に戻すやつ作るやつ
 void CreatePunchEndVec();
 
+//スコアの係数出す関数
+float CoefCal();
+
 //敵のGetter
 XMODEL* GetEnemy();
 

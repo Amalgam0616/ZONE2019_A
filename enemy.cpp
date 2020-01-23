@@ -16,6 +16,8 @@
 #include "particle.h"
 #include "score.h"
 
+#include <math.h>
+
 //定数定義 ==========================================================================
 
 //プレイヤーに使うモデル数
@@ -86,9 +88,7 @@ bool Punch_Flg;
 //パンチのフェーズ管理
 PUNCH_PHASE g_PunchPhase;
 
-//追加部分1===============================
 LAST_PUNCH_PHASE g_Last_Punch_Phase;
-//追加部分1===============================
 
 //撃っているパンチの種類の管理
 PUNCH_PATTERN_INDEX g_Punch_Pattern_Index;
@@ -99,10 +99,8 @@ float Punch_Speed;
 //パンチ終了Z座標
 float g_PunchEndLine;
 
-//追加部分2===============================
 //吹っ飛ばされるときに使うカウント
 int g_FLYAWAY_Cnt;
-//追加部分2===============================
 
 //瞬間移動字の速度倍率
 static float g_Slow_Multi;
@@ -137,7 +135,8 @@ static const int g_EndFrameList[PPI_MAX] =
 	15,	//ジャンプパンチ右
 };
 
-
+//スコア係数用にZ距離保存
+static float g_ZDist;
 
 //スローフラグ(いる)
 bool SlowFlg;
@@ -179,11 +178,11 @@ HRESULT InitEnemy()
 	//スローフラグ
 	SlowFlg = false;
 
-	//追加部分3===============================
 	//パンチパターン作成
 	for (int i = 0; i < NUM_PUNCH; i++)
 	{
-		g_PunchPattern[i] = rand() % (PPI_MAX - 2);
+		//g_PunchPattern[i] = rand() % (PPI_MAX - 2);
+		g_PunchPattern[i] = R_FLASH_PUNCH;
 	}
 	//最後のパンチは必ず
 	g_PunchPattern[NUM_PUNCH - 1] = LAST_PUNCH;
@@ -191,17 +190,13 @@ HRESULT InitEnemy()
 	//パンチフレームカウントの初期化
 	g_PunchFrameCnt = 0;
 
-	//追加部分3===============================
-
 	//パンチ中か否か
 	Punch_Flg = false;
 	//パンチスピード
 	Punch_Speed = 3.0f;
 
-	//追加部分4===============================
 	//吹っ飛ばされるときに使うカウント
 	g_FLYAWAY_Cnt = 0;
-	//追加部分4===============================
 
 	//瞬間移動の速度倍率
 	g_Slow_Multi = 1.0f;
@@ -211,10 +206,8 @@ HRESULT InitEnemy()
 	//撃っているパンチの種類の管理
 	g_Punch_Pattern_Index = PUNCH_NULL;
 
-	//追加部分5===============================
 	//最後のパンチのフェーズの初期化
 	g_Last_Punch_Phase = PUNCH_PHASE_LCHARGE;
-	//追加部分5===============================
 
 	//パンチ終了Z座標(これがあるので、敵のInitはプレイヤーより後に行ってください)
 	g_PunchEndLine = (GetPlayer() + 1)->Pos.z;
@@ -225,6 +218,9 @@ HRESULT InitEnemy()
 
 	//パンチ回数初期化
 	g_PunchCnt = 0;
+
+	//Z距離保存初期化
+	g_ZDist = 0;
 
 	//モデル初期位置保存
 	for (int i = 0; i < ENEMY_MODEL_NUM - 1; i++)
@@ -426,13 +422,11 @@ void UpdateEnemy()
 					g_Punch_Pattern_Index = PPI_R_JUMP_PUNCH;
 					JumpPunch_R();
 				}
-				//追加部分6==========================================
 				else if (g_PunchPattern[g_PunchCnt] == LAST_PUNCH)
 				{
 					g_Punch_Pattern_Index = LAST_PUNCH;
 					Last_Punch();
 				}
-				//追加部分6==========================================
 			}
 		}
 	}
@@ -539,9 +533,7 @@ void DrawEnemy()
 	//ワールドトランスフォーム(絶対座標変換)
 	D3DXMatrixIdentity(&g_mtxWorld);
 
-	//追加部分7==========================================
 	if (g_Last_Punch_Phase < PUNCH_PHASE_FLYAWAY)
-		//追加部分7==========================================
 	{
 		//モデル分繰り返す
 		for (int j = 0; j < ENEMY_MODEL_NUM - 1; j++)
@@ -792,6 +784,9 @@ void RightPunch()
 			dir.y = 8.0f - g_Enemy[3].Pos.y;
 			D3DXVec2Normalize(&dir, &dir);
 
+			//Z距離保存
+			g_ZDist = fabsf(g_PunchEndLine - g_Enemy[3].Pos.z);
+
 			//フェーズ進行
 			g_PunchPhase = PUNCH_PHASE_SWING;
 		}
@@ -893,6 +888,9 @@ void LeftPunch()
 			dir.y = 8.0f - g_Enemy[2].Pos.y;
 			D3DXVec2Normalize(&dir, &dir);
 
+			//Z距離保存
+			g_ZDist = fabsf(g_PunchEndLine - g_Enemy[2].Pos.z);
+
 			//フェーズ進行
 			g_PunchPhase = PUNCH_PHASE_SWING;
 		}
@@ -984,6 +982,9 @@ void Right_R_FLASH_PUNCH()
 			PunchLR = true;
 			Charge_Start();
 			//Punch_Charge_Effect();
+
+			//Z距離保存
+			g_ZDist = fabsf(g_PunchEndLine - g_Enemy[3].Pos.z);
 		}
 
 	}
@@ -1085,6 +1086,9 @@ void  Left_R_FLASH_PUNCH()
 			PunchLR = false;
 			Charge_Start();
 			//Punch_Charge_Effect();
+
+			//Z距離保存
+			g_ZDist = fabsf(g_PunchEndLine - g_Enemy[2].Pos.z);
 		}
 	}
 	else if (g_PunchPhase == PUNCH_PHASE_SWING)
@@ -1211,6 +1215,9 @@ void DunkPunch()
 			dir.y = 0.0f - g_Enemy[3].Pos.y;
 			dir.z = g_PunchEndLine - g_Enemy[3].Pos.z;
 			D3DXVec3Normalize(&dir, &dir);
+
+			//Z距離保存
+			g_ZDist = fabsf(g_PunchEndLine - g_Enemy[3].Pos.z);
 
 			//後々つかうので０にする
 			g_PunchFrameCnt = 0;
@@ -1445,6 +1452,9 @@ void JumpPunch_L()
 			dir.z = g_PunchEndLine - g_Enemy[2].Pos.z;
 			D3DXVec3Normalize(&dir, &dir);
 
+			//Z距離保存
+			g_ZDist = fabsf(g_PunchEndLine - g_Enemy[2].Pos.z);
+
 			//フェーズ進行
 			g_PunchPhase = PUNCH_PHASE_SWING;
 			g_PunchFrameCnt = 0;
@@ -1670,6 +1680,9 @@ void JumpPunch_R()
 			dir.y = 8.0f - g_Enemy[3].Pos.y;
 			dir.z = g_PunchEndLine - g_Enemy[3].Pos.z;
 			D3DXVec3Normalize(&dir, &dir);
+
+			//Z距離保存
+			g_ZDist = fabsf(g_PunchEndLine - g_Enemy[3].Pos.z);
 
 			//フェーズ進行
 			g_PunchPhase = PUNCH_PHASE_SWING;
@@ -2072,6 +2085,75 @@ void CreatePunchEndVec()
 		g_PunchEndRot[i].y = (g_Enemy[i].Rot.y - g_ModelStaRot[i].y) / g_EndFrameList[g_PunchPattern[g_PunchCnt]];
 		g_PunchEndRot[i].z = (g_Enemy[i].Rot.z - g_ModelStaRot[i].z) / g_EndFrameList[g_PunchPattern[g_PunchCnt]];
 	}
+}
+
+//スコアの係数出す関数
+float CoefCal()
+{
+	//準備中
+	if (g_PunchPhase == PUNCH_PHASE_CHARGE)
+	{
+		return 0.5f;
+	}
+	else if (g_PunchPhase != PUNCH_PHASE_CHARGE)
+	{
+		//一時メモリ
+		float tmp_ZDist;
+
+		//左手パンチ系
+		if ((g_PunchPattern[g_PunchCnt] == PPI_LEFT_PUNCH) ||
+			(g_PunchPattern[g_PunchCnt] == PPI_L_JUMP_PUNCH) ||
+			(g_PunchPattern[g_PunchCnt] == L_FLASH_PUNCH))
+		{
+			tmp_ZDist = fabsf(g_PunchEndLine - g_Enemy[2].Pos.z);
+
+			tmp_ZDist = tmp_ZDist / g_ZDist;
+
+			//最低点
+			if (tmp_ZDist > 0.8f)
+			{
+				return 0.65f;
+			}
+			//普通くらい
+			else if ((tmp_ZDist <= 0.8f) && (tmp_ZDist > 0.4f))
+			{
+				return 0.8f;
+			}
+			//すごい
+			else if (tmp_ZDist <= 0.4f)
+			{
+				return 1.0f;
+			}
+		}
+		//右手パンチ系
+		else if ((g_PunchPattern[g_PunchCnt] == PPI_RIGHT_PUNCH) ||
+				(g_PunchPattern[g_PunchCnt] == PPI_R_JUMP_PUNCH) ||
+				(g_PunchPattern[g_PunchCnt] == R_FLASH_PUNCH) ||
+				(g_PunchPattern[g_PunchCnt] == PPI_DUNK_PUNCH))
+		{
+			tmp_ZDist = fabsf(g_PunchEndLine - g_Enemy[3].Pos.z);
+
+			tmp_ZDist = tmp_ZDist / g_ZDist;
+
+			//最低点
+			if (tmp_ZDist > 0.8f)
+			{
+				return 0.65f;
+			}
+			//普通くらい
+			else if ((tmp_ZDist <= 0.8f) && (tmp_ZDist > 0.4f))
+			{
+				return 0.8f;
+			}
+			//すごい
+			else if (tmp_ZDist <= 0.4f)
+			{
+				return 1.0f;
+			}
+		}
+	}
+
+	return 0.0f;
 }
 
 //敵のGetter

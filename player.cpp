@@ -205,7 +205,7 @@ void UpdatePlayer()
 				//スコアを増やす
 				if (g_AddScoreFlg == true && g_Once_AddScore_Flg == false && (GetPunchIndex() == PPI_RIGHT_PUNCH) || (GetPunchIndex() == PPI_R_JUMP_PUNCH))
 				{
-					AddScore(1000);
+					AddScore(1000 * CoefCal());
 					AddGauge(10);
 					//一度のみスコアを加えるフラグを正にする
 					g_Once_AddScore_Flg = true;
@@ -215,7 +215,7 @@ void UpdatePlayer()
 
 				if (g_Once_AddScore_Flg == false && GetPunchIndex() == R_FLASH_PUNCH)
 				{
-					AddScore(1000);
+					AddScore(1000 * CoefCal());
 					AddGauge(10);
 					//一度のみスコアを加えるフラグを正にする
 					g_Once_AddScore_Flg = true;
@@ -246,7 +246,7 @@ void UpdatePlayer()
 				//スコアを増やす
 				if (g_AddScoreFlg == true && g_Once_AddScore_Flg == false && ((GetPunchIndex() == PPI_LEFT_PUNCH) || (GetPunchIndex() == PPI_L_JUMP_PUNCH)))
 				{
-					AddScore(1000);
+					AddScore(1000 * CoefCal());
 					//一度のみスコアを加えるフラグを正にする
 					g_Once_AddScore_Flg = true;
 					//回避フラグを正にする
@@ -256,7 +256,7 @@ void UpdatePlayer()
 				if (g_Once_AddScore_Flg == false && GetPunchIndex() == L_FLASH_PUNCH)
 				{
 					AddGauge(10);
-					AddScore(1000);
+					AddScore(1000 * CoefCal());
 					//一度のみスコアを加えるフラグを正にする
 					g_Once_AddScore_Flg = true;
 					//回避フラグを正にする
