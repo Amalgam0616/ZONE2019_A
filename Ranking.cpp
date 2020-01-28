@@ -74,7 +74,6 @@ void InitRanking(void)
 
 	/*ファイルのクローズ*/
 	fclose(fp);
-
 }
 
 void UninitRanking(void)
@@ -84,6 +83,10 @@ void UninitRanking(void)
 
 void UpdateRanking(void)
 {
+	rank.high_score[0] = 999999;
+	rank.high_score[1] = 999999;
+	rank.high_score[2] = 999999;
+
 	if (g_RankingStartFlg == true) {
 		DebugProc_Print((char*)"スコア：%d", GetScore());
 		//シーン遷移の秒数を数える
@@ -95,12 +98,12 @@ void UpdateRanking(void)
 
 		if (RankingGloveMoveCnt >= 40) {
 			if (g_RankingPunchEffectFlg == false) {
-				g_RankingGlovePos = 1170.0f;
+				g_RankingGlovePos = 1200.0f;
 				g_RankingPunchEffectFlg = true;
 				RankingGloveMoveCnt = 0;
 			}
 			else if (g_RankingPunchEffectFlg == true) {
-				g_RankingGlovePos = 1220.0f;
+				g_RankingGlovePos = 1230.0f;
 				g_RankingPunchEffectFlg = false;
 				RankingGloveMoveCnt = 0;
 			}
@@ -129,10 +132,12 @@ void UpdateRanking(void)
 
 void DrawRanking(void)
 {
-	if (RankingDrawCnt < 254 && MyScoreMove >= 340) {
+
+
+	if (RankingDrawCnt < 254 && MyScoreMove >= 330) {
 		RankingDrawCnt += 2;
 	}
-	if (MyScoreMove <= 340){
+	if (MyScoreMove <= 330){
 		MyScoreMove += 3;
 	}
 	//背景
@@ -156,63 +161,63 @@ void DrawRanking(void)
 	//シーン遷移
 	//Sprite_Draw(TEXTURE_INDEX_SKIP_SCENE_CHANGE, 0, 0);
 	Sprite_Draw(TEXTURE_INDEX_SKIP_SCENE_CHANGE,
-		950.0f,
-		650.0f,
+		1065.0f,
+		50.0f,
 		0,
 		0,
 		500,
 		300,
 		500 / 2,
 		300 / 2,
-		0.5f,
-		0.4f,
+		0.3f,
+		0.2f,
 		0.0f,
 		RankingDrawCnt);
 
 	//シーンチェンジの指示の絵の表示
 	//パンチングマシーン
 	Sprite_Draw(TEXTURE_INDEX_PUNCHINGMACHINE,
-		1120.0f,
-		650.0f,
+		1170.0f,
+		50.0f,
 		0,
 		0,
 		300,
 		400,
 		300 / 2,
 		400 / 2,
-		0.3f,
-		0.3f,
+		0.2f,
+		0.2f,
 		0.0f,
 		RankingDrawCnt);
 
 	if (g_RankingPunchEffectFlg == true) {
 		//パンチングマシーンを殴ってるエフェクト
 		Sprite_Draw(TEXTURE_INDEX_SCENE_CHANGE_EFFECT,
-			1130.0f,
-			625.0f,
+			1180.0f,
+			25.0f,
 			0,
 			0,
 			300,
 			300,
 			300 / 2,
 			300 / 2,
-			0.4f,
-			0.4f,
+			0.3f,
+			0.3f,
 			0.0f,
 			RankingDrawCnt);
 	}
 	//グローブ
 	Sprite_Draw(TEXTURE_INDEX_GLOVE,
 		g_RankingGlovePos,
-		625.0f,
+		25.0f,
 		0,
 		0,
 		300,
 		300,
 		300 / 2,
 		300 / 2,
-		0.3f,
-		0.3f,
+		0.2f,
+		0.2f,
 		0.0f,
 		RankingDrawCnt);
 
@@ -220,18 +225,69 @@ void DrawRanking(void)
 	//============================================
 	//1位のスコア
 	//============================================	
-	DrawScore(TEXTURE_INDEX_GOLDNUMBER, 400, 210, rank.high_score[0], 6, 0.3f, 0.3f, 80, RankingDrawCnt);
+	//金表彰台
+	Sprite_Draw
+	(
+		TEXTURE_INDEX_GOLDTABLE,
+		SCREEN_WIDTH / 2,
+		SCREEN_HEIGHT / 2 + 245,
+		0,
+		0,
+		256,
+		1357,
+		256 / 2,
+		1357 / 2,
+		0.8f,
+		0.5f,
+		0.0f,
+		RankingDrawCnt
+	);
+	DrawScore(TEXTURE_INDEX_GOLDNUMBER, 455, 210, rank.high_score[0], 6, 0.25f, 0.25f, 60, RankingDrawCnt);
 
 	//============================================
 	//2位のスコア
 	//============================================
 	//スコアが1位と同じでない場合
 	if (rank.high_score[1] != rank.high_score[0]) {
-		DrawScore(TEXTURE_INDEX_SILVERNUMBER, 180, 340, rank.high_score[1], 6, 0.3f, 0.3f, 80, RankingDrawCnt);
+		//銀表彰台ランク
+		Sprite_Draw
+		(
+			TEXTURE_INDEX_SILVERTABLE,
+			250,
+			SCREEN_HEIGHT / 2 + 375,
+			0,
+			0,
+			256,
+			1357,
+			256 / 2,
+			1357 / 2,
+			0.8f,
+			0.5f,
+			0.0f,
+			RankingDrawCnt
+		);
+		DrawScore(TEXTURE_INDEX_SILVERNUMBER, 70, 340, rank.high_score[1], 6, 0.25f, 0.25f, 60, RankingDrawCnt);
 	}
 	//スコアが1位と同じ場合
 	else {
-		DrawScore(TEXTURE_INDEX_GOLDNUMBER, 180, 340, rank.high_score[1], 6, 0.3f, 0.3f, 80, RankingDrawCnt);
+		Sprite_Draw
+		(
+			TEXTURE_INDEX_GOLDTABLE,
+			250,
+			SCREEN_HEIGHT / 2 + 245,
+			0,
+			0,
+			256,
+			1357,
+			256 / 2,
+			1357 / 2,
+			0.8f,
+			0.5f,
+			0.0f,
+			RankingDrawCnt
+		);
+		DrawScore(TEXTURE_INDEX_GOLDNUMBER, 70, 210, rank.high_score[1], 6, 0.25f, 0.25f, 60, RankingDrawCnt);
+
 	}
 
 	//============================================
@@ -239,15 +295,69 @@ void DrawRanking(void)
 	//============================================
 	//スコアが1位と同じ場合
 	if (rank.high_score[2] == rank.high_score[0]) {
-		DrawScore(TEXTURE_INDEX_GOLDNUMBER, 670, 380, rank.high_score[2], 6, 0.3f, 0.3f, 80, RankingDrawCnt);
+		//銅表彰台ランク
+		Sprite_Draw
+		(
+			TEXTURE_INDEX_GOLDTABLE,
+			SCREEN_WIDTH / 4 * 3 + 60,
+			SCREEN_HEIGHT / 2 + 245,
+			0,
+			0,
+			256,
+			1357,
+			256 / 2,
+			1357 / 2,
+			0.8f,
+			0.5f,
+			0.0f,
+			RankingDrawCnt
+		);
+		DrawScore(TEXTURE_INDEX_GOLDNUMBER, 840, 210, rank.high_score[2], 6, 0.25f, 0.25f, 60, RankingDrawCnt);
+
 	}
 	//スコアが2位と同じ場合
 	else if (rank.high_score[2] == rank.high_score[1]) {
-		DrawScore(TEXTURE_INDEX_SILVERNUMBER, 670, 380, rank.high_score[2], 6, 0.3f, 0.3f, 80, RankingDrawCnt);
+		//銅表彰台ランク
+		Sprite_Draw
+		(
+			TEXTURE_INDEX_SILVERTABLE,
+			SCREEN_WIDTH / 4 * 3 + 60,
+			SCREEN_HEIGHT / 2 + 375,
+			0,
+			0,
+			256,
+			1357,
+			256 / 2,
+			1357 / 2,
+			0.8f,
+			0.5f,
+			0.0f,
+			RankingDrawCnt
+		);
+		DrawScore(TEXTURE_INDEX_SILVERNUMBER, 840, 340, rank.high_score[2], 6, 0.25f, 0.25f, 60, RankingDrawCnt);
+
 	}
 	//スコアが3位の場合
 	else {
-		DrawScore(TEXTURE_INDEX_BLONZENUMBER, 670, 380, rank.high_score[2], 6, 0.3f, 0.3f, 80, RankingDrawCnt);
+		//銅表彰台ランク
+		Sprite_Draw
+		(
+			TEXTURE_INDEX_BRONZETABLE,
+			SCREEN_WIDTH / 4 * 3 + 60,
+			SCREEN_HEIGHT / 2 + 475,
+			0,
+			0,
+			256,
+			1357,
+			256 / 2,
+			1357 / 2,
+			0.8f,
+			0.5f,
+			0.0f,
+			RankingDrawCnt
+		);
+		DrawScore(TEXTURE_INDEX_BLONZENUMBER, 840, 440, rank.high_score[2], 6, 0.25f, 0.25f, 60, RankingDrawCnt);
+
 	}
 
 	//============================================
@@ -257,17 +367,17 @@ void DrawRanking(void)
 	if (GetScore() < RANKING_BORDER1)
 	{
 		//スコア（X位置Y位置　数値　桁数 拡大率X　拡大率Y  桁ごとのオフセット）
-		DrawScore(TEXTURE_INDEX_BLONZENUMBER, 270.0f, SCREEN_HEIGHT / 2 - MyScoreMove, GetScore(), 6, 0.5f, 0.5f, 120.0f,255);
+		DrawScore(TEXTURE_INDEX_BLONZENUMBER, 320.0f, SCREEN_HEIGHT / 2 - MyScoreMove, GetScore(), 6, 0.4f, 0.4f, 105.0f,255);
 	}
 	//銀メダル級テクスチャ
 	else if (GetScore() >= RANKING_BORDER1 && GetScore() < RANKING_BORDER2)
 	{
-		DrawScore(TEXTURE_INDEX_SILVERNUMBER, 270.0f, SCREEN_HEIGHT / 2 - MyScoreMove, GetScore(), 6, 0.5f, 0.5f, 120.0f, 255);
+		DrawScore(TEXTURE_INDEX_SILVERNUMBER, 320.0f, SCREEN_HEIGHT / 2 - MyScoreMove, GetScore(), 6, 0.4f, 0.4f, 105.0f, 255);
 	}
 	//金メダル級テクスチャ
 	else if (GetScore() >= RANKING_BORDER2)
 	{
-		DrawScore(TEXTURE_INDEX_GOLDNUMBER, 270.0f, SCREEN_HEIGHT / 2 - MyScoreMove, GetScore(), 6, 0.5f, 0.5f, 120.0f, 255);
+		DrawScore(TEXTURE_INDEX_GOLDNUMBER, 320.0f, SCREEN_HEIGHT / 2 - MyScoreMove, GetScore(), 6, 0.4f, 0.4f, 105.0f, 255);
 	}
 
 }
@@ -309,4 +419,11 @@ void SetRank(int newscore)
 	}
 
 
+}
+
+//デバッグ
+//ランキングにするだけの関数
+void SetRanking_true()
+{
+	g_RankingStartFlg = true;
 }

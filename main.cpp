@@ -101,7 +101,7 @@ int APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 	(
 		CLASS_NAME,     // ウィンドウクラス
 		WINDOW_CAPTION, // ウィンドウテキスト
-		window_style,   // ウィンドウスタイル
+		WS_VISIBLE | WS_POPUP ,   // ウィンドウスタイル
 		window_x,       // ウィンドウ座標x
 		window_y,       // ウィンドウ座標y
 		window_width,   // ウィンドウの幅
@@ -335,7 +335,7 @@ void DrawMain()
 	// デバッグ表示の描画処理
 	if (g_bDispDebug)
 	{
-		DebugProc_Draw();
+		//DebugProc_Draw();
 	}
 
 	// シーンの描画

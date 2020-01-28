@@ -9,6 +9,10 @@
 #define SCREEN_WIDTH	(1280)	// スクリーン(クライアント領域)の幅
 #define SCREEN_HEIGHT	(720)	// スクリーン(クライアント領域)の高さ
 
+//おっきいやつにするとき
+#define SCREEN_WIDTH_RESOLUTION (1920)	
+#define SCREEN_HEIGHT_RESOLUTION	(1080)	// スクリーン(クライアント領域)の高さ
+
 #define	NUM_VERTEX		(1000)		// 頂点数
 #define	NUM_POLYGON		(1000)		// ポリゴン数
 

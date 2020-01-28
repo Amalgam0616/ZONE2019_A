@@ -11,6 +11,17 @@
 #include "Xfile.h"
 
 //追加部分1==========================================
+//チュートリアルのフレーム関係
+#define		TUTORIAL_1_FRAME		(30)
+#define		TUTORIAL_2_FRAME		(260)
+#define		TUTORIAL_3_FRAME		(60)
+#define		TUTORIAL_4_FRAME		(60)
+#define		TUTORIAL_5_FRAME		(220)
+#define		TUTORIAL_6_FRAME		(60)
+#define		TUTORIAL_7_FRAME		(60)
+
+
+
 //最後のパンチのフレーム関係(カメラ等で使用するためヘッダにおく)
 #define		LAST_PUNCH_CHAGE_FRAME	(60)	
 #define		LAST_PUNCH_WAVE_FRAME	(60)	
@@ -21,9 +32,9 @@
 #define		LAST_PUNCH_YOIN_FRAME	(120)
 #define		LAST_PUNCH_FLYAWAY_FRAME (10)
 //変更 330→100(天井に穴あくまで）、破片実装したらもうちょいフレーム足すかも
-#define		LAST_PUNCH_FLYING_FRAME	(300)	//余裕をもって11秒取っておいた(これ以降は要相談)
+#define		LAST_PUNCH_FLYING_FRAME	(280)	//余裕をもって11秒取っておいた(これ以降は要相談)
 //追加
-#define		LAST_PUNCH_OUTFLYING_FRAME	(660)	//余裕をもって11秒取っておいた(これ以降は要相談)
+#define		LAST_PUNCH_OUTFLYING_FRAME	(600)	//余裕をもって11秒取っておいた(これ以降は要相談)
 #define		LAST_PUNCH_HIT_FRAME	(330)
 
 //吹き飛ばさるときのフレーム
@@ -67,6 +78,21 @@ enum PUNCH_PHASE
 	PUNCH_PHASE_CHARGE = 0,
 	PUNCH_PHASE_SWING,
 	PUNCH_PHASE_RETURN,
+
+};
+
+//チュートリアルのフェーズ
+enum TUTORIAL_PHASE
+{
+	TUTORIAL_1 = 0,
+	TUTORIAL_2,
+	TUTORIAL_3,
+	TUTORIAL_4,
+	TUTORIAL_5,
+	TUTORIAL_6,
+	TUTORIAL_7,
+
+	TUTORIAL_NUM
 
 };
 
@@ -156,7 +182,7 @@ void ENEMY_FLYAWAY();
 void CreatePunchEndVec();
 
 //スコアの係数出す関数
-float CoefCal();
+float CoefCal(bool s_or_g);
 
 //敵のGetter
 XMODEL* GetEnemy();
@@ -180,3 +206,18 @@ LAST_PUNCH_PHASE GetLastPunchPhase();
 
 //追加
 int Getg_PunchFrameCnt();
+
+
+//追加
+//チュートリアル関数
+void PlayTutorial();
+
+//チュートリアルの画像表示するときの関数
+void DrawTutorial();
+
+//チュートリアルのフェーズのGet関数
+TUTORIAL_PHASE GetTutorialPhase();
+
+bool GetEnemyMove_Flg();
+
+bool GetTutorialFlg();

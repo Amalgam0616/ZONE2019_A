@@ -15,7 +15,7 @@
 #include "particle.h"
 #include "gauge.h"
 #include "Ranking.h"
-
+#include "input.h"
 
 static bool SkyFlag;
 
@@ -42,7 +42,7 @@ void InitGame(void)
 	InitGauge();
 	InitParticle();
 	if (GetRankingStart() == true) {
-		DrawRanking();
+		InitRanking();
 	}
 }
 
@@ -118,6 +118,7 @@ void DrawGame(void)
 	DrawEnemy();
 	DrawParticle();
 
+
 	if (!SkyFlag)
 	{
 		DrawPlayer();
@@ -130,6 +131,13 @@ void DrawGame(void)
 
 	SlowEffect();
 
+	if (GetTutorialFlg())
+	{
+		if (GetTutorialPhase() == TUTORIAL_1 || GetTutorialPhase() == TUTORIAL_3 || GetTutorialPhase() == TUTORIAL_7)
+		{
+			DrawTutorial();
+		}
+	}
 	if (GetResultStart())
 	{
 		DrawResult();

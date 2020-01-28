@@ -14,3 +14,5 @@ void DrawGauge(void);
 void AddGauge(int Percent);
 //ゲージを減らすか関数、引数は何パーセント減らすか
 void ReduceGauge(int Percent);
+
+int GetGauge();

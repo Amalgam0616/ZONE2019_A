@@ -4,7 +4,7 @@
 
 //スコアの基準値
 #define RANKING_BORDER1 300000
-#define RANKING_BORDER2 800000
+#define RANKING_BORDER2 360000
 
 
 //*****************************************************************************
@@ -18,3 +18,6 @@ bool GetRankingStart();
 bool GetResultStart();
 void SetResultStart_true();
 void SetResultStart_false();
+
+//デバッグ
+void SetRanking_Start_true();

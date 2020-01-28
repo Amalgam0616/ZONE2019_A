@@ -10,6 +10,8 @@
 #include "score.h"
 #include "sound.h"
 #include "gauge.h"
+#include "Title.h"
+
 //定数定義 ==========================================================================
 
 //プレイヤーに使うモデル数
@@ -189,84 +191,212 @@ void UpdatePlayer()
 		if (GetPunch_Flg())
 		{
 			//キー入力に応じてステート変化
-			if (!isAction && Keyboard_IsRelease(DIK_D) && !g_DodgeFlg)
-			{//右回避
-				g_PlAnimState = PLANIME_INDEX_DODGE_L;
-				//アニメーションフレーム初期化
-				g_AnimFrameCnt = 0;
-				//アクション中にする
-				isAction = true;
+			//でかいエンターでやるとき
+			if (GetBigEnter() == true) {
+				if (!isAction && Keyboard_IsRelease(DIK_D) && !g_DodgeFlg)
+				{//右回避
+					g_PlAnimState = PLANIME_INDEX_DODGE_L;
+					//アニメーションフレーム初期化
+					g_AnimFrameCnt = 0;
+					//アクション中にする
+					isAction = true;
 
-				//回避方向にフラグを立てる
-				g_LrFlg = true;
-				//スコアを追加するフラグを立てる
-				g_AddScoreFlg = true;
+					//回避方向にフラグを立てる
+					g_LrFlg = false;
+					//スコアを追加するフラグを立てる
+					g_AddScoreFlg = true;
 
-				//スコアを増やす
-				if (g_AddScoreFlg == true && g_Once_AddScore_Flg == false && (GetPunchIndex() == PPI_RIGHT_PUNCH) || (GetPunchIndex() == PPI_R_JUMP_PUNCH))
-				{
-					AddScore(1000 * CoefCal());
-					AddGauge(10);
-					//一度のみスコアを加えるフラグを正にする
-					g_Once_AddScore_Flg = true;
-					//回避フラグを正にする
-					g_DodgeFlg = true;
+					//スコアを増やす
+					if (g_AddScoreFlg == true && g_Once_AddScore_Flg == false && (GetPunchIndex() == PPI_RIGHT_PUNCH))
+					{
+						AddScore(30000 * CoefCal(true));
+						AddGauge(13 - (int)CoefCal(false));
+						//一度のみスコアを加えるフラグを正にする
+						g_Once_AddScore_Flg = true;
+						//回避フラグを正にする
+						g_DodgeFlg = true;
+					}
+
+					if (g_AddScoreFlg == true && g_Once_AddScore_Flg == false && (GetPunchIndex() == PPI_R_JUMP_PUNCH))
+					{
+						AddScore(60000 * CoefCal(true));
+						AddGauge(15 - (int)CoefCal(false));
+						//一度のみスコアを加えるフラグを正にする
+						g_Once_AddScore_Flg = true;
+						//回避フラグを正にする
+						g_DodgeFlg = true;
+					}
+
+					if (g_Once_AddScore_Flg == false && GetPunchIndex() == R_FLASH_PUNCH)
+					{
+						AddScore(90000 * CoefCal(true));
+						AddGauge(17 - (int)CoefCal(false));
+						//一度のみスコアを加えるフラグを正にする
+						g_Once_AddScore_Flg = true;
+						//回避フラグを正にする
+						g_DodgeFlg = true;
+					}
+
+					if (g_Once_AddScore_Flg == false && GetPunchIndex() == PPI_DUNK_PUNCH)
+					{
+						//回避フラグを正にする
+						g_DodgeFlg = true;
+					}
 				}
+				else if (!isAction && Keyboard_IsRelease(DIK_A) && !g_DodgeFlg)
+				{//左回避
+					//ステート変化
+					g_PlAnimState = PLANIME_INDEX_DODGE_R;
+					//アニメーションフレーム初期化
+					g_AnimFrameCnt = 0;
+					//アクション中にする
+					isAction = true;
 
-				if (g_Once_AddScore_Flg == false && GetPunchIndex() == R_FLASH_PUNCH)
-				{
-					AddScore(1000 * CoefCal());
-					AddGauge(10);
-					//一度のみスコアを加えるフラグを正にする
-					g_Once_AddScore_Flg = true;
-					//回避フラグを正にする
-					g_DodgeFlg = true;
-				}
+					//回避方向にフラグを立てる
+					g_LrFlg = true;
+					//スコアを追加するフラグを立てる
+					g_AddScoreFlg = true;
 
-				if (g_Once_AddScore_Flg == false && GetPunchIndex() == PPI_DUNK_PUNCH)
-				{
-					//回避フラグを正にする
-					g_DodgeFlg = true;
+					//スコアを増やす
+					if (g_AddScoreFlg == true && g_Once_AddScore_Flg == false && (GetPunchIndex() == PPI_LEFT_PUNCH))
+					{
+						AddScore(30000 * CoefCal(true));
+						AddGauge(13 - (int)CoefCal(false));
+						//一度のみスコアを加えるフラグを正にする
+						g_Once_AddScore_Flg = true;
+						//回避フラグを正にする
+						g_DodgeFlg = true;
+					}
+
+					if (g_AddScoreFlg == true && g_Once_AddScore_Flg == false && (GetPunchIndex() == PPI_L_JUMP_PUNCH))
+					{
+						AddScore(60000 * CoefCal(true));
+						AddGauge(15 - (int)CoefCal(false));
+						//一度のみスコアを加えるフラグを正にする
+						g_Once_AddScore_Flg = true;
+						//回避フラグを正にする
+						g_DodgeFlg = true;
+					}
+
+					if (g_Once_AddScore_Flg == false && GetPunchIndex() == L_FLASH_PUNCH)
+					{
+						AddScore(90000 * CoefCal(true));
+						AddGauge(17 - (int)CoefCal(false));
+						//一度のみスコアを加えるフラグを正にする
+						g_Once_AddScore_Flg = true;
+						//回避フラグを正にする
+						g_DodgeFlg = true;
+					}
+
+					if (g_Once_AddScore_Flg == false && GetPunchIndex() == PPI_DUNK_PUNCH)
+					{
+						//回避フラグを正にする
+						g_DodgeFlg = true;
+					}
 				}
 			}
-			else if (!isAction && Keyboard_IsRelease(DIK_A) && !g_DodgeFlg)
-			{//左回避
-				//ステート変化
-				g_PlAnimState = PLANIME_INDEX_DODGE_R;
-				//アニメーションフレーム初期化
-				g_AnimFrameCnt = 0;
-				//アクション中にする
-				isAction = true;
+			//キーボードでやるとき
+			else if (GetBigEnter() == false) {
+				if (!isAction && Keyboard_IsTrigger(DIK_D) && !g_DodgeFlg)
+				{//右回避
+					g_PlAnimState = PLANIME_INDEX_DODGE_L;
+					//アニメーションフレーム初期化
+					g_AnimFrameCnt = 0;
+					//アクション中にする
+					isAction = true;
 
-				//回避方向にフラグを立てる
-				g_LrFlg = false;
-				//スコアを追加するフラグを立てる
-				g_AddScoreFlg = true;
+					//回避方向にフラグを立てる
+					g_LrFlg = false;
+					//スコアを追加するフラグを立てる
+					g_AddScoreFlg = true;
 
-				//スコアを増やす
-				if (g_AddScoreFlg == true && g_Once_AddScore_Flg == false && ((GetPunchIndex() == PPI_LEFT_PUNCH) || (GetPunchIndex() == PPI_L_JUMP_PUNCH)))
-				{
-					AddScore(1000 * CoefCal());
-					//一度のみスコアを加えるフラグを正にする
-					g_Once_AddScore_Flg = true;
-					//回避フラグを正にする
-					g_DodgeFlg = true;
+					//スコアを増やす
+					if (g_AddScoreFlg == true && g_Once_AddScore_Flg == false && (GetPunchIndex() == PPI_RIGHT_PUNCH))
+					{
+						AddScore(30000 * CoefCal(true));
+						AddGauge(13 - (int)CoefCal(false));
+						//一度のみスコアを加えるフラグを正にする
+						g_Once_AddScore_Flg = true;
+						//回避フラグを正にする
+						g_DodgeFlg = true;
+					}
+
+					if (g_AddScoreFlg == true && g_Once_AddScore_Flg == false && (GetPunchIndex() == PPI_R_JUMP_PUNCH))
+					{
+						AddScore(60000 * CoefCal(true));
+						AddGauge(15 - (int)CoefCal(false));
+						//一度のみスコアを加えるフラグを正にする
+						g_Once_AddScore_Flg = true;
+						//回避フラグを正にする
+						g_DodgeFlg = true;
+					}
+
+					if (g_Once_AddScore_Flg == false && GetPunchIndex() == R_FLASH_PUNCH)
+					{
+						AddScore(90000 * CoefCal(true));
+						AddGauge(17 - (int)CoefCal(false));
+						//一度のみスコアを加えるフラグを正にする
+						g_Once_AddScore_Flg = true;
+						//回避フラグを正にする
+						g_DodgeFlg = true;
+					}
+
+					if (g_Once_AddScore_Flg == false && GetPunchIndex() == PPI_DUNK_PUNCH)
+					{
+						//回避フラグを正にする
+						g_DodgeFlg = true;
+					}
 				}
+				else if (!isAction && Keyboard_IsTrigger(DIK_A) && !g_DodgeFlg)
+				{//左回避
+					//ステート変化
+					g_PlAnimState = PLANIME_INDEX_DODGE_R;
+					//アニメーションフレーム初期化
+					g_AnimFrameCnt = 0;
+					//アクション中にする
+					isAction = true;
 
-				if (g_Once_AddScore_Flg == false && GetPunchIndex() == L_FLASH_PUNCH)
-				{
-					AddGauge(10);
-					AddScore(1000 * CoefCal());
-					//一度のみスコアを加えるフラグを正にする
-					g_Once_AddScore_Flg = true;
-					//回避フラグを正にする
-					g_DodgeFlg = true;
-				}
+					//回避方向にフラグを立てる
+					g_LrFlg = true;
+					//スコアを追加するフラグを立てる
+					g_AddScoreFlg = true;
 
-				if (g_Once_AddScore_Flg == false && GetPunchIndex() == PPI_DUNK_PUNCH)
-				{
-					//回避フラグを正にする
-					g_DodgeFlg = true;
+					//スコアを増やす
+					if (g_AddScoreFlg == true && g_Once_AddScore_Flg == false && (GetPunchIndex() == PPI_LEFT_PUNCH))
+					{
+						AddScore(30000 * CoefCal(true));
+						AddGauge(13 - (int)CoefCal(false));
+						//一度のみスコアを加えるフラグを正にする
+						g_Once_AddScore_Flg = true;
+						//回避フラグを正にする
+						g_DodgeFlg = true;
+					}
+
+					if (g_AddScoreFlg == true && g_Once_AddScore_Flg == false && (GetPunchIndex() == PPI_L_JUMP_PUNCH))
+					{
+						AddScore(60000 * CoefCal(true));
+						AddGauge(15 - (int)CoefCal(false));
+						//一度のみスコアを加えるフラグを正にする
+						g_Once_AddScore_Flg = true;
+						//回避フラグを正にする
+						g_DodgeFlg = true;
+					}
+
+					if (g_Once_AddScore_Flg == false && GetPunchIndex() == L_FLASH_PUNCH)
+					{
+						AddScore(90000 * CoefCal(true));
+						AddGauge(17 - (int)CoefCal(false));
+						//一度のみスコアを加えるフラグを正にする
+						g_Once_AddScore_Flg = true;
+						//回避フラグを正にする
+						g_DodgeFlg = true;
+					}
+
+					if (g_Once_AddScore_Flg == false && GetPunchIndex() == PPI_DUNK_PUNCH)
+					{
+						//回避フラグを正にする
+						g_DodgeFlg = true;
+					}
 				}
 			}
 		}
@@ -301,8 +431,8 @@ void UpdatePlayer()
 		}
 		else if (GetPunchPhase() == PUNCH_PHASE_RETURN && g_Once_AddScore_Flg == false && !g_DodgeFlg)
 		{
-			AddGauge(10);
-			AddScore(1000);
+			AddGauge(13);
+			AddScore(60000);
 			//一度のみスコアを加えるフラグを正にする
 			g_Once_AddScore_Flg = true;
 		}
@@ -310,9 +440,19 @@ void UpdatePlayer()
 
 	//回避ボタンがどっちも押されていたらアニメーションストップを解除する
 	//デバッグの時は「押されていないとき」にしといて
-	if ((AnimStopFlg && Keyboard_IsPress(DIK_A) && Keyboard_IsPress(DIK_D)))
-	{
-		AnimStopFlg = false;
+	//デカエンターの時
+	if (GetBigEnter() == true) {
+		if ((AnimStopFlg && Keyboard_IsPress(DIK_A) && Keyboard_IsPress(DIK_D)))
+		{
+			AnimStopFlg = false;
+		}
+	}
+	//キーボードのとき
+	if (GetBigEnter() == false) {
+		if ((AnimStopFlg && !Keyboard_IsPress(DIK_A) && !Keyboard_IsPress(DIK_D)))
+		{
+			AnimStopFlg = false;
+		}
 	}
 
 	//アニメがストップされていなかったらフレーム進行
@@ -346,7 +486,7 @@ void UpdatePlayer()
 		}
 	}
 
-	
+
 	//g_Finish_FLgが正になったとき通るとFinishPunchを撃つ
 	if (GetLastPunchPhase() == PUNCH_PHASE_STOP)
 	{

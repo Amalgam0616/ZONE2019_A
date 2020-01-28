@@ -7,6 +7,7 @@
 #include "scene.h"
 #include "sky.h"
 #include "game.h"
+#include "debugproc.h"
 //=============================================================================
 // マクロ定義
 //=============================================================================
@@ -134,9 +135,15 @@ void UpdateCamera(void)
 	}
 	else if (GetScene() == SCENE_INDEX_GAME)
 	{
+		if (Keyboard_IsPress(DIK_N))
+		{
+			g_Camera.posV.z--;
+		}
 		//ゲームの時の更新処理
 
 		g_Player_Camera = true;
+
+
 
 		//追加部分1(ここにあったデバック処理は恐らく使わない＆別のファイルに退避済みなので消してOK)==========================================
 		//最後のパンチのカメラワーク関連
@@ -155,16 +162,39 @@ void UpdateCamera(void)
 		else if (GetLastPunchPhase() == PUNCH_PHASE_STOP)
 		{
 			//カメラを全体像が見える位置に移動させる
-			g_Camera.posR = D3DXVECTOR3(0, 30.0f, 0);
-			g_Camera.posV = D3DXVECTOR3(150.0f, 60.0f, 0);
+			g_Camera.posR = D3DXVECTOR3(-1.0f, 30.0f, 0.0f);
+			g_Camera.posV = D3DXVECTOR3(-10.0f, 1.0f, 85.0f);
 		}
 		else if (GetLastPunchPhase() == PUNCH_PHASE_YOIN)
 		{
-			g_Camera.posR = D3DXVECTOR3(0, 30.0f, 0);
-			g_Camera.posV = D3DXVECTOR3(150.0f, 60.0f, 0);
+			g_Camera.posR = D3DXVECTOR3(-1.0f, 30.0f, 0);
+			g_Camera.posV = D3DXVECTOR3(-10.0f, 1.0f, 85.0f);
 		}
-		else if (GetLastPunchPhase() >= PUNCH_PHASE_FLYAWAY)
+		else if (GetLastPunchPhase() == PUNCH_PHASE_FLYAWAY)
 		{
+			g_Camera.posR = D3DXVECTOR3(-1.0f, 30.0f, 0);
+			g_Camera.posV = D3DXVECTOR3(-10.0f, 1.0f, 85.0f);
+		}
+		else if (GetLastPunchPhase() == PUNCH_PHASE_INFLYING)
+		{
+			g_Camera.posR = D3DXVECTOR3(-1.0f, 30.0f, 0);
+			g_Camera.posV = D3DXVECTOR3(-10.0f, 1.0f, 85.0f);
+		}
+		else if (GetLastPunchPhase() >= PUNCH_PHASE_OUTFLYING)
+		{
+			bool Set = false;
+			if (!Set)
+			{
+				g_Camera.posR = D3DXVECTOR3(0, 30.0f, 0);
+				g_Camera.posV = D3DXVECTOR3(150.0f, 60.0f, 0.0f);
+				Set = true;
+			}
+			if (Keyboard_IsTrigger(DIK_N))
+			{
+				g_Camera.posV.z--;
+			}
+			DebugProc_Print((char *)"\nカメラのZ座標:[%d]\n", g_Camera.posV.z);
+
 			//敵の顔をカメラの中心点にして吹っ飛んだ敵を追う
 			Finish_CameraMove();
 		}
@@ -327,7 +357,7 @@ void Camera_Move_Xspin(D3DXVECTOR3(Start_Pos), float Rota_X, float Spin_Time)
 	g_Camera.posV.y = cosf(D3DXToRadian(g_CameraRot_Y)) * CAMERA_RAD;
 }
 
-//追加部分2==========================================
+
 //以下最後のパンチのカメラ関連(作ったけど微妙だったからまた後で調整)
 //フェーズ番号を後につける
 void LastPunchCamera1()

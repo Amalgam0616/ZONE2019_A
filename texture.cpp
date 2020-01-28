@@ -59,8 +59,19 @@ static const TextureFile g_TextureFiles[] =
 	{ "asset/texture/cloud2.png",512, 400},
 	{ "asset/texture/cloud3.png",512, 400},
 
-	{"asset/texture/UFO.png",300,150}
+	{"asset/texture/UFO.png",300,150},
 
+	{ "asset/texture/tuto1.png",512, 288},
+	{ "asset/texture/tuto2.png",512, 288},
+	{ "asset/texture/tuto3.png",512, 288},
+	{ "asset/texture/tuto4.png",512, 288},
+	{ "asset/texture/tuto5.png",512, 288},
+	{ "asset/texture/tuto6.png",512, 288},
+
+	//ランキング
+	{ "asset/texture/GoldTable.png",256, 1357},
+	{ "asset/texture/SilverTable.png",256, 1357},
+	{ "asset/texture/BlonzeTable.png",256, 1357},
 	//{ "asset/Xfile/Moon.png",1024, 512},
 
 
@@ -87,7 +98,7 @@ int LoadTexture(void)
 		
 		if( FAILED(D3DXCreateTextureFromFile(pDevice, g_TextureFiles[i].filename, &g_pTextures[i])) ) 
 		{
-            // DebugPrintf("テクスチャの読み込みに失敗 ... %s\n", g_TextureFiles[i].filename);
+           // DebugPrintf("テクスチャの読み込みに失敗 ... %s\n", g_TextureFiles[i].filename);
 			failed_count++;
 		}
 	}

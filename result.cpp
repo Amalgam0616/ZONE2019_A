@@ -250,14 +250,20 @@ bool GetResultStart()
 {
 	return g_ResultStart;
 }
-//リザルト開始にするだけの関数、そういうこと
+//リザルト開始にするだけの関数
 void SetResultStart_true()
 {
 	g_ResultStart = true;
 }
 
-//リザルト終了にするだけの関数、そういうこと
+//リザルト終了にするだけの関数
 void SetResultStart_false()
 {
 	g_ResultStart = false;
+}
+
+//リザルト開始にするだけの関数
+void SetRanking_Start_true()
+{
+	g_Ranking_Start = true;
 }

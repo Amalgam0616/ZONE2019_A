@@ -13,6 +13,8 @@
 #include "texture.h"
 #include "enemy.h"
 #include <time.h>
+#include "sky.h"
+
 //*****************************************************************************
 // マクロ定義
 //*****************************************************************************
@@ -20,10 +22,15 @@
 #define	PARTICLE_SIZE_Y		(0.5f)							// ビルボードの高さ
 #define	VALUE_MOVE_PARTICLE	(5.0f)							// 移動速度
 
-#define	MAX_PARTICLE		(50)						// ビルボード最大数
+#define	MAX_CHARGEPARTICLE		(50)						//チャージビルボード最大数
+#define	MAX_SMOKEPARTICLE		(50)						//砂煙ビルボード最大数
+#define	MAX_PARTICLE			(50)						//ビルボード最大数
+
+
 #define CHARGE_IN_SPEED		37								//チャージインするときの速度
 #define CHARGE_OUT_SPEED	20								//チャージアウトするときの速度
 
+#define SMOKE_SPEED		30								//砂煙の速度
 
 //*****************************************************************************
 // 構造体定義
@@ -65,12 +72,18 @@ D3DXVECTOR3				g_posBase;						// ビルボード発生位置
 D3DXVECTOR3				g_posBase2;						// ビルボード2発生位置
 
 bool					g_bPause = false;				// ポーズON/OFF
+float					g_ParticlAlpha;					//パーティクルのアルファ値
 
 //チャージの関数
-bool					ChargeParticle;					//チャージしているかどうか
+bool					g_ChargeParticle;					//チャージしているかどうか
 int						g_ChargeCnt;					//チャージ時間
 int						g_ChargePattern;		        //パーティクルの動きのパターン:0 なにもなし:1 パンチチャージイン:2 パンチチャージアウト
-float					g_ParticlAlpha;					//パーティクルのアルファ値
+
+//砂煙の関数
+bool					g_SmokeParticle;					//チャージしているかどうか
+int						g_SmokeCnt;					//チャージ時間
+int						g_SmokePattern;		        //パーティクルの動きのパターン:0 なにもなし:1 パンチチャージイン:2 パンチチャージアウト
+
 //=============================================================================
 // 初期化処理
 //=============================================================================
@@ -102,7 +115,7 @@ HRESULT InitParticle(void)
 
 	g_posBase = D3DXVECTOR3(0.0f, 0.0f, 0.0f);
 	g_posBase2 = D3DXVECTOR3(0.0f, 0.0f, 0.0f);
-	ChargeParticle = false;
+	g_ChargeParticle = false;
 	g_ChargeCnt = 0;
 	g_ChargePattern = 0;
 	g_ParticlAlpha = 0.0f;
@@ -136,205 +149,23 @@ void UpdateParticle(void)
 	//乱数の初期化
 	srand((unsigned)time(NULL));
 
-	if (GetPunchIndex() == 0 || GetPunchIndex() == 2 || GetPunchIndex() == 6) {
-		g_posBase = (GetEnemy() + 3)->Pos;
-	}
-	else if (GetPunchIndex() == 1 || GetPunchIndex() == 3 || GetPunchIndex() == 5) {
-		g_posBase = (GetEnemy() + 2)->Pos;
-	}
-	else if (GetPunchIndex() == 4) {
-		//g_posBase = (GetEnemy() + 2)->Pos;
-		//g_posBase2 = (GetEnemy() + 3)->Pos;
+	if (Keyboard_IsTrigger(DIK_6)) {
+		SmokeParticle_Start();
 	}
 
 	// カメラの回転を取得
 	CAMERA *cam = GetCamera();
 
 	// 更新処理
-	// デバッグ処理
-	if (Keyboard_IsTrigger(DIK_1))
-	{
-		ChargeParticle = true;
-		g_ChargePattern = 1;
-	}
-
 	//=============================================================================
 	//チャージパーティクル
 	//=============================================================================
-	if (ChargeParticle == true) {
-		if (g_bPause == false)
-		{
-			for (int nCntParticle = 0; nCntParticle < MAX_PARTICLE; nCntParticle++)
-			{
-				if (g_aParticle[nCntParticle].bUse)
-				{// 使用中
-					g_aParticle[nCntParticle].pos.x += g_aParticle[nCntParticle].move.x;
-					g_aParticle[nCntParticle].pos.y += g_aParticle[nCntParticle].move.y;
-					g_aParticle[nCntParticle].pos.z += g_aParticle[nCntParticle].move.z;
+	ChargeParticle();
 
-
-					if (GetPunchIndex() == 4) {
-						g_aParticle[nCntParticle].pos.y += (GetEnemy() + 3)->Pos.y - g_posBase2.y;
-					}
-					g_aParticle[nCntParticle].nLife--;
-		
-					SetColorParticle(nCntParticle, g_aParticle[nCntParticle].col);
-					if (g_ChargePattern == 1) {
-						SetColorParticle(nCntParticle, D3DXCOLOR(0.1f, 0.1f, 0.0f, g_ParticlAlpha));
-						g_ParticlAlpha += 1.0f / (CHARGE_IN_SPEED* MAX_PARTICLE);
-					}
-					if (g_ChargePattern == 2) {
-						SetColorParticle(nCntParticle, D3DXCOLOR(0.1f, 0.1f, 0.0f, g_ParticlAlpha));
-						g_ParticlAlpha -= 1.0f / (CHARGE_OUT_SPEED * MAX_PARTICLE);
-					}
-				}
-				//ライフが0になった時
-				if (g_aParticle[nCntParticle].nLife <= 0)
-				{
-					g_aParticle[nCntParticle].bUse = false;
-					g_aParticle[nCntParticle].nIdxShadow = -1;
-				}
-
-			}
-			//両手の時
-			if (GetPunchIndex() == 4) {
-				g_posBase = (GetEnemy() + 2)->Pos;
-				g_posBase2 = (GetEnemy() + 3)->Pos;
-			}
-			////ジャンピングパンチ右の時
-			//if (GetPunchIndex() == 5) {
-			//	g_posBase2.y = (GetEnemy() + 2)->Pos.y;
-			//}
-			////ジャンピングパンチ左の時
-			//if (GetPunchIndex() == 6) {
-			//	g_posBase2.y = (GetEnemy() + 3)->Pos.y;
-			//}
-
-			if (g_ChargePattern == 1) {
-				for (int nCntParticle = 0; nCntParticle < MAX_PARTICLE; nCntParticle++)
-				{
-
-					// パーティクル発生
-					D3DXVECTOR3 pos, pos2;
-					D3DXVECTOR3 move, move2;
-					int nLife;
-					float fSize;
-
-					//位置設定
-					//左手
-					if (GetPunchIndex() == 0 || GetPunchIndex() == 2 || GetPunchIndex() == 6) {
-						pos = (GetEnemy() + 3)->Pos;
-					}
-					//右手
-					else if (GetPunchIndex() == 1 || GetPunchIndex() == 3 || GetPunchIndex() == 5) {
-						pos = (GetEnemy() + 2)->Pos;
-					}
-					//両手パンチ
-					else if (GetPunchIndex() == 4) {
-						pos = (GetEnemy() + 2)->Pos;
-						pos2 = (GetEnemy() + 3)->Pos;
-
-						pos2.x += (rand() % MAX_PARTICLE - 25);
-						pos2.y += (rand() % MAX_PARTICLE - 25);
-
-
-						move2.x = (g_posBase2.x - pos2.x) / CHARGE_IN_SPEED;
-						move2.y = (g_posBase2.y - pos2.y) / CHARGE_IN_SPEED;
-						move2.z = 0;
-					}
-
-					pos.x += (rand() % MAX_PARTICLE - 25);
-					pos.y += (rand() % MAX_PARTICLE - 25);
-					pos.z += (rand() % MAX_PARTICLE - 25);
-
-
-					move.x = (g_posBase.x - pos.x) / CHARGE_IN_SPEED;
-					move.y = (g_posBase.y - pos.y) / CHARGE_IN_SPEED;
-					move.z = (g_posBase.z - pos.z) / CHARGE_IN_SPEED;
-
-					nLife = CHARGE_IN_SPEED;
-
-					fSize = (float)(rand() % 1 + 2);
-					//fSize = fSize / 2;
-					// ビルボードの設定
-					SetParticle(pos, move, D3DXCOLOR(0.8f, 0.8f, 0.0f, 1.0f), fSize, fSize, nLife);
-					if (GetPunchIndex() == 4) {
-						SetParticle(pos2, move2, D3DXCOLOR(0.8f, 0.8f, 0.0f, 1.0f), fSize, fSize, nLife);
-					}
-				}
-			}
-
-			if (g_ChargePattern == 2) {
-				for (int nCntParticle = 0; nCntParticle < MAX_PARTICLE; nCntParticle++)
-				{
-
-					// パーティクル発生
-					D3DXVECTOR3 pos,pos2;
-					D3DXVECTOR3 move,move2;
-					int nLife;
-					float fSize;
-
-					//位置設定
-					if (GetPunchIndex() == 0 || GetPunchIndex() == 2 || GetPunchIndex() == 6) {
-						pos = (GetEnemy() + 3)->Pos;
-					}
-					else if (GetPunchIndex() == 1 || GetPunchIndex() == 3 || GetPunchIndex() == 5) {
-						pos = (GetEnemy() + 2)->Pos;
-					}
-					else if (GetPunchIndex() == 4) {
-						pos = (GetEnemy() + 2)->Pos;
-						pos2 = (GetEnemy() + 3)->Pos;
-
-						pos2.x += (rand() % MAX_PARTICLE - 25);
-						pos2.y += (rand() % MAX_PARTICLE - 25);
-
-						move2.x = (rand() % MAX_PARTICLE - 25);
-						move2.y = (rand() % MAX_PARTICLE - 25);
-						move2.z = (rand() % MAX_PARTICLE - 25);
-
-						move2.x = move2.x / CHARGE_OUT_SPEED;
-						move2.y = move2.y / CHARGE_OUT_SPEED;
-						move2.z = 0;
-					}
-
-					move.x = (rand() % MAX_PARTICLE - 25);
-					move.y = (rand() % MAX_PARTICLE - 25);
-					move.z = (rand() % MAX_PARTICLE - 25);
-
-					move.x = move.x / CHARGE_OUT_SPEED;
-					move.y = move.y / CHARGE_OUT_SPEED;
-					move.z = move.z / CHARGE_OUT_SPEED;
-
-					nLife = CHARGE_OUT_SPEED * 2;
-
-					fSize = (float)(rand() % 1 + 2);
-					//fSize = fSize / 2;
-					// ビルボードの設定
-					SetParticle(pos, move, D3DXCOLOR(0.8f, 0.8f, 0.0f, 1.0f), fSize, fSize, nLife);
-					if (GetPunchIndex() == 4) {
-						SetParticle(pos2, move2, D3DXCOLOR(0.8f, 0.8f, 0.0f, 1.0f), fSize, fSize, nLife);
-					}
-				}
-			}
-
-			g_ChargeCnt++;
-			if (g_ChargeCnt >= CHARGE_IN_SPEED) {
-				g_ChargePattern = 2;
-			}
-			if (g_ChargeCnt >= CHARGE_IN_SPEED + CHARGE_OUT_SPEED * 2) {
-				for (int nCntParticle = 0; nCntParticle < MAX_PARTICLE; nCntParticle++)
-				{
-					g_aParticle[nCntParticle].bUse = false;
-					g_aParticle[nCntParticle].nIdxShadow = -1;
-				}
-				ChargeParticle = false;
-			}
-		}
-	}
-	else {
-		g_ParticlAlpha = 0.0f;
-		g_ChargeCnt = 0;
-	}
+	//=============================================================================
+	//砂煙パーティクル
+	//=============================================================================
+	//SandSmokeParticle();
 }
 
 //=============================================================================
@@ -559,8 +390,271 @@ int SetParticle(D3DXVECTOR3 pos, D3DXVECTOR3 move, D3DXCOLOR col, float fSizeX, 
 	return nIdxParticle;
 }
 
+//チャージパーティクル
+void ChargeParticle() {
+	//ベースの位置を取得
+	if (GetPunchIndex() == 0 || GetPunchIndex() == 2 || GetPunchIndex() == 6) {
+		g_posBase = (GetEnemy() + 3)->Pos;
+	}
+	else if (GetPunchIndex() == 1 || GetPunchIndex() == 3 || GetPunchIndex() == 5) {
+		g_posBase = (GetEnemy() + 2)->Pos;
+	}
+	else if (GetPunchIndex() == 4) {
+		//g_posBase = (GetEnemy() + 2)->Pos;
+		//g_posBase2 = (GetEnemy() + 3)->Pos;
+	}
+	//チャージされたら
+	if (g_ChargeParticle == true) {
+		if (g_bPause == false)
+		{
+			for (int nCntParticle = 0; nCntParticle < MAX_CHARGEPARTICLE; nCntParticle++)
+			{
+				if (g_aParticle[nCntParticle].bUse)
+				{// 使用中
+					g_aParticle[nCntParticle].pos.x += g_aParticle[nCntParticle].move.x;
+					g_aParticle[nCntParticle].pos.y += g_aParticle[nCntParticle].move.y;
+					g_aParticle[nCntParticle].pos.z += g_aParticle[nCntParticle].move.z;
+
+
+					if (GetPunchIndex() == 4) {
+						g_aParticle[nCntParticle].pos.y += (GetEnemy() + 3)->Pos.y - g_posBase2.y;
+					}
+					g_aParticle[nCntParticle].nLife--;
+
+					SetColorParticle(nCntParticle, g_aParticle[nCntParticle].col);
+					if (g_ChargePattern == 1) {
+						SetColorParticle(nCntParticle, D3DXCOLOR(0.1f, 0.1f, 0.0f, g_ParticlAlpha));
+						g_ParticlAlpha += 1.0f / (CHARGE_IN_SPEED* MAX_CHARGEPARTICLE);
+					}
+					if (g_ChargePattern == 2) {
+						SetColorParticle(nCntParticle, D3DXCOLOR(0.1f, 0.1f, 0.0f, g_ParticlAlpha));
+						g_ParticlAlpha -= 1.0f / (CHARGE_OUT_SPEED * MAX_CHARGEPARTICLE);
+					}
+				}
+				//ライフが0になった時
+				if (g_aParticle[nCntParticle].nLife <= 0)
+				{
+					g_aParticle[nCntParticle].bUse = false;
+					g_aParticle[nCntParticle].nIdxShadow = -1;
+				}
+
+			}
+			//両手の時
+			if (GetPunchIndex() == 4) {
+				g_posBase = (GetEnemy() + 2)->Pos;
+				g_posBase2 = (GetEnemy() + 3)->Pos;
+			}
+			////ジャンピングパンチ右の時
+			//if (GetPunchIndex() == 5) {
+			//	g_posBase2.y = (GetEnemy() + 2)->Pos.y;
+			//}
+			////ジャンピングパンチ左の時
+			//if (GetPunchIndex() == 6) {
+			//	g_posBase2.y = (GetEnemy() + 3)->Pos.y;
+			//}
+
+			if (g_ChargePattern == 1) {
+				for (int nCntParticle = 0; nCntParticle < MAX_CHARGEPARTICLE; nCntParticle++)
+				{
+
+					// パーティクル発生
+					D3DXVECTOR3 pos, pos2;
+					D3DXVECTOR3 move, move2;
+					int nLife;
+					float fSize;
+
+					//位置設定
+					//左手
+					if (GetPunchIndex() == 0 || GetPunchIndex() == 2 || GetPunchIndex() == 6) {
+						pos = (GetEnemy() + 3)->Pos;
+					}
+					//右手
+					else if (GetPunchIndex() == 1 || GetPunchIndex() == 3 || GetPunchIndex() == 5) {
+						pos = (GetEnemy() + 2)->Pos;
+					}
+					//両手パンチ
+					else if (GetPunchIndex() == 4) {
+						pos = (GetEnemy() + 2)->Pos;
+						pos2 = (GetEnemy() + 3)->Pos;
+
+						pos2.x += (rand() % MAX_CHARGEPARTICLE - 25);
+						pos2.y += (rand() % MAX_CHARGEPARTICLE - 25);
+
+
+						move2.x = (g_posBase2.x - pos2.x) / CHARGE_IN_SPEED;
+						move2.y = (g_posBase2.y - pos2.y) / CHARGE_IN_SPEED;
+						move2.z = 0;
+					}
+
+					pos.x += (rand() % MAX_CHARGEPARTICLE - 25);
+					pos.y += (rand() % MAX_CHARGEPARTICLE - 25);
+					pos.z += (rand() % MAX_CHARGEPARTICLE - 25);
+
+
+					move.x = (g_posBase.x - pos.x) / CHARGE_IN_SPEED;
+					move.y = (g_posBase.y - pos.y) / CHARGE_IN_SPEED;
+					move.z = (g_posBase.z - pos.z) / CHARGE_IN_SPEED;
+
+					nLife = CHARGE_IN_SPEED;
+
+					fSize = (float)(rand() % 1 + 2);
+					//fSize = fSize / 2;
+					// ビルボードの設定
+					SetParticle(pos, move, D3DXCOLOR(0.8f, 0.8f, 0.0f, 1.0f), fSize, fSize, nLife);
+					if (GetPunchIndex() == 4) {
+						SetParticle(pos2, move2, D3DXCOLOR(0.8f, 0.8f, 0.0f, 1.0f), fSize, fSize, nLife);
+					}
+				}
+			}
+
+			if (g_ChargePattern == 2) {
+				for (int nCntParticle = 0; nCntParticle < MAX_CHARGEPARTICLE; nCntParticle++)
+				{
+
+					// パーティクル発生
+					D3DXVECTOR3 pos, pos2;
+					D3DXVECTOR3 move, move2;
+					int nLife;
+					float fSize;
+
+					//位置設定
+					if (GetPunchIndex() == 0 || GetPunchIndex() == 2 || GetPunchIndex() == 6) {
+						pos = (GetEnemy() + 3)->Pos;
+					}
+					else if (GetPunchIndex() == 1 || GetPunchIndex() == 3 || GetPunchIndex() == 5) {
+						pos = (GetEnemy() + 2)->Pos;
+					}
+					else if (GetPunchIndex() == 4) {
+						pos = (GetEnemy() + 2)->Pos;
+						pos2 = (GetEnemy() + 3)->Pos;
+
+						pos2.x += (rand() % MAX_CHARGEPARTICLE - 25);
+						pos2.y += (rand() % MAX_CHARGEPARTICLE - 25);
+
+						move2.x = (rand() % MAX_CHARGEPARTICLE - 25);
+						move2.y = (rand() % MAX_CHARGEPARTICLE - 25);
+						move2.z = (rand() % MAX_CHARGEPARTICLE - 25);
+
+						move2.x = move2.x / CHARGE_OUT_SPEED;
+						move2.y = move2.y / CHARGE_OUT_SPEED;
+						move2.z = 0;
+					}
+
+					move.x = (rand() % MAX_CHARGEPARTICLE - 25);
+					move.y = (rand() % MAX_CHARGEPARTICLE - 25);
+					move.z = (rand() % MAX_CHARGEPARTICLE - 25);
+
+					move.x = move.x / CHARGE_OUT_SPEED;
+					move.y = move.y / CHARGE_OUT_SPEED;
+					move.z = move.z / CHARGE_OUT_SPEED;
+
+					nLife = CHARGE_OUT_SPEED * 2;
+
+					fSize = (float)(rand() % 1 + 2);
+					//fSize = fSize / 2;
+					// ビルボードの設定
+					SetParticle(pos, move, D3DXCOLOR(0.8f, 0.8f, 0.0f, 1.0f), fSize, fSize, nLife);
+					if (GetPunchIndex() == 4) {
+						SetParticle(pos2, move2, D3DXCOLOR(0.8f, 0.8f, 0.0f, 1.0f), fSize, fSize, nLife);
+					}
+				}
+			}
+
+			g_ChargeCnt++;
+			if (g_ChargeCnt >= CHARGE_IN_SPEED) {
+				g_ChargePattern = 2;
+			}
+			if (g_ChargeCnt >= CHARGE_IN_SPEED + CHARGE_OUT_SPEED * 2) {
+				for (int nCntParticle = 0; nCntParticle < MAX_CHARGEPARTICLE; nCntParticle++)
+				{
+					g_aParticle[nCntParticle].bUse = false;
+					g_aParticle[nCntParticle].nIdxShadow = -1;
+				}
+				g_ChargeParticle = false;
+			}
+		}
+	}
+	else {
+		g_ParticlAlpha = 0.0f;
+		g_ChargeCnt = 0;
+	}
+}
 //チャージをtrueにする関数
 void Charge_Start(){
-	ChargeParticle = true;
+	g_ChargeParticle = true;
 	g_ChargePattern = 1;
+}
+//=============================================================================
+//砂煙パーティクル
+//=============================================================================
+void SandSmokeParticle() {
+	if (g_SmokeParticle == true) {
+		g_posBase = (GetEnemy() + 2)->Pos;
+
+		for (int nCntParticle = 0; nCntParticle < MAX_SMOKEPARTICLE; nCntParticle++)
+		{
+			if (g_aParticle[nCntParticle].bUse)
+			{// 使用中
+				g_aParticle[nCntParticle].pos.x += g_aParticle[nCntParticle].move.x;
+				g_aParticle[nCntParticle].pos.y += g_aParticle[nCntParticle].move.y;
+				g_aParticle[nCntParticle].pos.z += g_aParticle[nCntParticle].move.z;
+
+				g_aParticle[nCntParticle].nLife--;
+
+				SetColorParticle(nCntParticle, g_aParticle[nCntParticle].col);
+				SetColorParticle(nCntParticle, D3DXCOLOR(0.1f, 0.1f, 0.0f, g_ParticlAlpha));
+				g_ParticlAlpha += 1.0f / (SMOKE_SPEED* MAX_SMOKEPARTICLE);
+
+			}
+		}
+		for (int nCntParticle = 0; nCntParticle < MAX_SMOKEPARTICLE; nCntParticle++)
+		{
+
+			// パーティクル発生
+			D3DXVECTOR3 pos;
+			D3DXVECTOR3 move;
+			int nLife;
+			float fSize;
+
+			//位置設定
+			pos = (GetEnemy() + 2)->Pos;
+	
+			move.x = (rand() % 50 - 25);
+			move.y = (rand() % 25 - 25);
+			move.z = 0;
+
+			move.x = move.x / SMOKE_SPEED;
+			move.y = move.y / SMOKE_SPEED;
+			move.z = move.z / SMOKE_SPEED;
+
+			nLife = SMOKE_SPEED * 2;
+
+			fSize = (float)(rand() % 1 + 2) * 0.1f;
+			//fSize = fSize / 2;
+			// ビルボードの設定
+			SetParticle(pos, move, D3DXCOLOR(0.8f, 0.8f, 0.0f, 1.0f), fSize, fSize, nLife);
+
+		}
+		g_ChargeCnt++;
+
+		//ライフが0になった時
+		if (g_SmokeCnt >= SMOKE_SPEED) {
+			for (int nCntParticle = 0; nCntParticle < MAX_SMOKEPARTICLE; nCntParticle++)
+			{
+				g_aParticle[nCntParticle].bUse = false;
+				g_aParticle[nCntParticle].nIdxShadow = -1;
+			}
+			g_SmokeParticle = false;
+		}
+	}
+	else {
+		g_ParticlAlpha = 0.0f;
+		g_SmokeCnt = 0;
+	}
+}
+
+//砂煙パーティクルをtrueにする関数
+void SmokeParticle_Start() {
+	g_SmokeParticle = true;
+	g_SmokePattern = 1;
 }

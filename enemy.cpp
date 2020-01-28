@@ -1,4 +1,3 @@
-
 #include "myDirect3D.h"
 #include "input.h"
 #include "Xfile.h"
@@ -15,6 +14,8 @@
 #include "result.h"
 #include "particle.h"
 #include "score.h"
+#include "sprite.h"
+#include "Title.h"
 
 #include <math.h>
 
@@ -78,6 +79,12 @@ D3DXVECTOR3 g_EnmMovePerFrame;
 //足を動かす系のヤツ(だと思う)
 bool EnmLeg_Flg;
 
+//チュートリアル用の変数たちを紹介するぜ！
+static bool g_Tutorial_Flg;				//チュートリアルを通るためのフラグ
+static bool g_EnemyMove_Flg;			//チュートリアル中に敵が動くことを許可するフラグ
+static int g_Description_cnt;			//説明ボードの番号
+TUTORIAL_PHASE g_TutorialPhase;			//チュートリアルのフェーズ
+static int Tutorial_cnt;
 
 //パンチパターン
 //０＝右ストレート　１＝左パンチ　２＝瞬間移動パンチ
@@ -147,6 +154,14 @@ void ENEMY_OUTFLYAWAY();
 //初期化
 HRESULT InitEnemy()
 {
+	//チュートリアル関係の初期化
+	g_Tutorial_Flg = false;
+	g_EnemyMove_Flg = true;
+	g_Description_cnt = 0;
+	g_TutorialPhase = TUTORIAL_1;
+	Tutorial_cnt = 0;
+
+
 	//乱数シード生成(他のとこでやるならここのは消してください)
 	srand((unsigned int)time(NULL));
 
@@ -157,7 +172,7 @@ HRESULT InitEnemy()
 			FAILED(LoadXFile(&g_Enemy[1], XFILE_INDEX_E_HEAD_001)) ||		//頭
 			FAILED(LoadXFile(&g_Enemy[2], XFILE_INDEX_E_GROBE_L_001)) ||	//左手(前からみて右)
 			FAILED(LoadXFile(&g_Enemy[3], XFILE_INDEX_E_GROBE_R_001)) ||	//右手(前からみて左)
-			
+
 			FAILED(LoadXFile(&g_Enemy[4], XFILE_INDEX_E_LEG_L_001)) ||		//左足(前からみて右)
 			FAILED(LoadXFile(&g_Enemy[5], XFILE_INDEX_E_LEG_R_001)) ||		//右足(前からみて左)
 			FAILED(LoadXFile(&g_Enemy[6], XFILE_INDEX_E_DMGBODY_001)))		//くの字の胴体
@@ -181,11 +196,21 @@ HRESULT InitEnemy()
 	//パンチパターン作成
 	for (int i = 0; i < NUM_PUNCH; i++)
 	{
-		//g_PunchPattern[i] = rand() % (PPI_MAX - 2);
-		g_PunchPattern[i] = R_FLASH_PUNCH;
+		g_PunchPattern[i] = rand() % (PPI_MAX - 2);
 	}
+
+	//for (int i = 0; i < LAST_PUNCH; i++)
+	//{
+	//	g_PunchPattern[i] = i;
+	//}
+
+	//最初のパンチは必ず左、右
+	g_PunchPattern[0] = PPI_LEFT_PUNCH;
+	g_PunchPattern[1] = PPI_LEFT_PUNCH;
+
 	//最後のパンチは必ず
 	g_PunchPattern[NUM_PUNCH - 1] = LAST_PUNCH;
+	//g_PunchPattern[3] = LAST_PUNCH;
 
 	//パンチフレームカウントの初期化
 	g_PunchFrameCnt = 0;
@@ -230,7 +255,7 @@ HRESULT InitEnemy()
 	}
 
 	//待機時間初期化
-	g_WaitTime = rand() % 60 + 120;
+	g_WaitTime = 180;
 
 	//アッパー待機状態か否か
 	g_Huttobi = false;
@@ -258,6 +283,18 @@ void UninitEnemy()
 //更新
 void UpdateEnemy()
 {
+	if (Keyboard_IsTrigger(DIK_6)) {
+		Tutorial_cnt = 0;
+		g_Tutorial_Flg = false;
+		g_EnemyMove_Flg = true;
+	}
+
+	if (g_Tutorial_Flg)
+	{
+		DebugProc_Print((char *)"\nチュートリアルフェーズ:[%d],説明ボードのカウント:[%d],敵の移動許可:[%d]\n", g_TutorialPhase, g_Description_cnt, g_EnemyMove_Flg);
+		PlayTutorial();
+	}
+
 	static int i = 0;
 
 	//回避：スロー関連
@@ -351,88 +388,89 @@ void UpdateEnemy()
 		//アッパー待機中は動かない
 		if (!g_Huttobi)
 		{
-			//条件が来たらアニメーションを終了してPosReset、からのパンチ
-			if (!Punch_Flg && g_WaitTime <= 0)
+			//行動許可があるときしか動けない
+			if (g_EnemyMove_Flg)
 			{
-				//アニメ終了：初期値にセット
-				isTaiki = false;
-				EnemyPosReset();
-				//パンチ中にする
-				Punch_Flg = true;
-			}
-			else
-			{//待機時間進行
-				g_WaitTime--;
-			}
-
-			if (Punch_Flg)
-			{
-				//ラストのパンチを一回目で見たい場合は下のコメントを解除してください
-				//g_PunchPattern[g_PunchCnt] = LAST_PUNCH;
-
-				//パンチ回数目のパンチパターンを見て、if分分岐
-				if (g_PunchPattern[g_PunchCnt] == PPI_RIGHT_PUNCH)
-				{//右通常パンチ
-					g_Punch_Pattern_Index = PPI_RIGHT_PUNCH;
-					RightPunch();
-				}
-				else if (g_PunchPattern[g_PunchCnt] == PPI_LEFT_PUNCH)
-				{//左通常パンチ
-					g_Punch_Pattern_Index = PPI_LEFT_PUNCH;
-					LeftPunch();
-				}
-				else if (g_PunchPattern[g_PunchCnt] == R_FLASH_PUNCH)
-				{//瞬間移動パンチ
-
-				//避けたら全体的に加速
-					if (GetDodgeFlg())
-					{
-						g_Slow_Multi = 3.0f;
-						g_PunchFrameCnt++;
-					}
-
-					g_Punch_Pattern_Index = R_FLASH_PUNCH;
-					Right_R_FLASH_PUNCH();
-				}
-				else if (g_PunchPattern[g_PunchCnt] == L_FLASH_PUNCH)
-				{//瞬間移動パンチ
-
-				//避けたら全体的に加速
-					if (GetDodgeFlg())
-					{
-						g_Slow_Multi = 3.0f;
-						g_PunchFrameCnt++;
-					}
-
-					g_Punch_Pattern_Index = L_FLASH_PUNCH;
-					Left_R_FLASH_PUNCH();
-				}
-				else if (g_PunchPattern[g_PunchCnt] == PPI_DUNK_PUNCH)
-				{//両手バーンてするパンチ
-					g_Punch_Pattern_Index = PPI_DUNK_PUNCH;
-					DunkPunch();
-				}
-				else if (g_PunchPattern[g_PunchCnt] == PPI_L_JUMP_PUNCH)
-				{//ジャンプパンチ左
-					g_Punch_Pattern_Index = PPI_L_JUMP_PUNCH;
-					JumpPunch_L();
-				}
-				else if (g_PunchPattern[g_PunchCnt] == PPI_R_JUMP_PUNCH)
-				{//ジャンプパンチ右
-					g_Punch_Pattern_Index = PPI_R_JUMP_PUNCH;
-					JumpPunch_R();
-				}
-				else if (g_PunchPattern[g_PunchCnt] == LAST_PUNCH)
+				//条件が来たらアニメーションを終了してPosReset、からのパンチ
+				if (!Punch_Flg && g_WaitTime <= 0)
 				{
-					g_Punch_Pattern_Index = LAST_PUNCH;
-					Last_Punch();
+					//アニメ終了：初期値にセット
+					isTaiki = false;
+					EnemyPosReset();
+					//パンチ中にする
+					Punch_Flg = true;
+				}
+				else
+				{//待機時間進行
+					g_WaitTime--;
+				}
+
+				if (Punch_Flg)
+				{
+					//ラストのパンチを一回目で見たい場合は下のコメントを解除してください
+					//g_PunchPattern[g_PunchCnt] = LAST_PUNCH;
+
+					//パンチ回数目のパンチパターンを見て、if分分岐
+					if (g_PunchPattern[g_PunchCnt] == PPI_RIGHT_PUNCH)
+					{//右通常パンチ
+						g_Punch_Pattern_Index = PPI_RIGHT_PUNCH;
+						RightPunch();
+					}
+					else if (g_PunchPattern[g_PunchCnt] == PPI_LEFT_PUNCH)
+					{//左通常パンチ
+						g_Punch_Pattern_Index = PPI_LEFT_PUNCH;
+						LeftPunch();
+					}
+					else if (g_PunchPattern[g_PunchCnt] == R_FLASH_PUNCH)
+					{//瞬間移動パンチ
+
+					//避けたら全体的に加速
+						if (GetDodgeFlg())
+						{
+							g_Slow_Multi = 3.0f;
+							g_PunchFrameCnt++;
+						}
+
+						g_Punch_Pattern_Index = R_FLASH_PUNCH;
+						Right_R_FLASH_PUNCH();
+					}
+					else if (g_PunchPattern[g_PunchCnt] == L_FLASH_PUNCH)
+					{//瞬間移動パンチ
+
+					//避けたら全体的に加速
+						if (GetDodgeFlg())
+						{
+							g_Slow_Multi = 3.0f;
+							g_PunchFrameCnt++;
+						}
+
+						g_Punch_Pattern_Index = L_FLASH_PUNCH;
+						Left_R_FLASH_PUNCH();
+					}
+					else if (g_PunchPattern[g_PunchCnt] == PPI_DUNK_PUNCH)
+					{//両手バーンてするパンチ
+						g_Punch_Pattern_Index = PPI_DUNK_PUNCH;
+						DunkPunch();
+					}
+					else if (g_PunchPattern[g_PunchCnt] == PPI_L_JUMP_PUNCH)
+					{//ジャンプパンチ左
+						g_Punch_Pattern_Index = PPI_L_JUMP_PUNCH;
+						JumpPunch_L();
+					}
+					else if (g_PunchPattern[g_PunchCnt] == PPI_R_JUMP_PUNCH)
+					{//ジャンプパンチ右
+						g_Punch_Pattern_Index = PPI_R_JUMP_PUNCH;
+						JumpPunch_R();
+					}
+					else if (g_PunchPattern[g_PunchCnt] == LAST_PUNCH)
+					{
+						g_Punch_Pattern_Index = LAST_PUNCH;
+						Last_Punch();
+					}
 				}
 			}
 		}
 	}
-
-
-
 
 	//デバッグ用
 	DebugProc_Print((char *)"最後のパンチのフェーズ管理：[%d]\n", g_Last_Punch_Phase);
@@ -839,7 +877,7 @@ void RightPunch()
 				//パンチ終了
 				Punch_Flg = false;
 				isTaiki = true;
-				g_WaitTime = rand() % 60 + 120;
+				g_WaitTime = 180;
 
 				//パンチ回数加算(デバッグ用に無限ループする)
 				if (g_PunchCnt < NUM_PUNCH - 1)
@@ -943,7 +981,7 @@ void LeftPunch()
 				//パンチ終了
 				Punch_Flg = false;
 				isTaiki = true;
-				g_WaitTime = rand() % 60 + 120;
+				g_WaitTime = 180;
 
 				//パンチ回数加算(デバッグ用に無限ループする)
 				if (g_PunchCnt < NUM_PUNCH - 1)
@@ -1047,7 +1085,7 @@ void Right_R_FLASH_PUNCH()
 				//パンチを撃っていない状態にもどす
 				g_Punch_Pattern_Index = PUNCH_NULL;
 
-				g_WaitTime = rand() % 60 + 120;
+				g_WaitTime = 180;
 
 				//パンチ回数加算(デバッグ用に無限ループする)
 				if (g_PunchCnt < NUM_PUNCH - 1)
@@ -1150,7 +1188,7 @@ void  Left_R_FLASH_PUNCH()
 				//パンチを撃っていない状態にもどす
 				g_Punch_Pattern_Index = PUNCH_NULL;
 
-				g_WaitTime = rand() % 60 + 120;
+				g_WaitTime = 180;
 
 				//パンチ回数加算(デバッグ用に無限ループする)
 				if (g_PunchCnt < NUM_PUNCH - 1)
@@ -1310,7 +1348,7 @@ void DunkPunch()
 				//パンチ終了
 				Punch_Flg = false;
 				isTaiki = true;
-				g_WaitTime = rand() % 60 + 120;
+				g_WaitTime = 180;
 
 				//パンチ回数加算(デバッグ用に無限ループする)
 				if (g_PunchCnt < NUM_PUNCH - 1)
@@ -1540,7 +1578,7 @@ void JumpPunch_L()
 				//パンチ終了
 				Punch_Flg = false;
 				isTaiki = true;
-				g_WaitTime = rand() % 60 + 120;
+				g_WaitTime = 180;
 
 				//パンチ回数加算(デバッグ用に無限ループする)
 				if (g_PunchCnt < NUM_PUNCH - 1)
@@ -1769,7 +1807,7 @@ void JumpPunch_R()
 				//パンチ終了
 				Punch_Flg = false;
 				isTaiki = true;
-				g_WaitTime = rand() % 60 + 120;
+				g_WaitTime = 180;
 
 				//パンチ回数加算(デバッグ用に無限ループする)
 				if (g_PunchCnt < NUM_PUNCH - 1)
@@ -1855,7 +1893,7 @@ void Last_Punch()
 			g_Enemy[5].Rot += D3DXVECTOR3(D3DXToRadian(-20.0f) / LAST_PUNCH_SET_FRAME, 0, D3DXToRadian(12.0f) / LAST_PUNCH_SET_FRAME);
 
 		}
-		else
+		if(g_PunchFrameCnt> LAST_PUNCH_SET_FRAME + 90)
 		{
 			g_Enemy[2].Pos += D3DXVECTOR3(10.0f, 0, 10.0f);
 			g_Enemy[3].Pos += D3DXVECTOR3(0, 0, -10.0f);
@@ -1937,7 +1975,7 @@ void Last_Punch()
 		}
 		else
 		{
-			g_Enemy[1].Pos = D3DXVECTOR3(0.0f, 22.0f, -56.5f);
+			g_Enemy[1].Pos = D3DXVECTOR3(5.0f, 22.0f, -56.5f);
 			g_Enemy[1].Rot = D3DXVECTOR3(D3DXToRadian(-31.2f), D3DXToRadian(0.0f), D3DXToRadian(0.0f));
 			g_Enemy[2].Pos = D3DXVECTOR3(15.0f, 16.7f, -56.2f);
 			g_Enemy[2].Rot = D3DXVECTOR3(D3DXToRadian(83.0f), D3DXToRadian(145.0f), D3DXToRadian(90.0f));
@@ -1978,6 +2016,11 @@ void Last_Punch()
 		{
 			if (!GetSkyFlag())
 			{
+				//これはデバッグ用
+				AddScore(100000);
+
+				//飛行が始まるとスコアが変動するため、現在時点でのスコアを保持して退避させる（ほんとはこんな微妙なとこに置きたくない）
+				SetCopy_Score();
 				//天井割れたら空の描画にうつるためフラグをtrueに変更（１回のみ）
 				SetSkyFlag_ture();
 			}
@@ -1987,60 +2030,16 @@ void Last_Punch()
 	}
 	else if (g_Last_Punch_Phase == PUNCH_PHASE_OUTFLYING)
 	{
-		//会場の外の処理はここに
+		//会場の外の処理
 		if (g_PunchFrameCnt < LAST_PUNCH_OUTFLYING_FRAME)
 		{
-			//ENEMY_OUTFLYAWAY();
-			
-		}
-		else
-		{
-			g_PunchFrameCnt = 0;
-			g_Last_Punch_Phase = PUNCH_PHASE_CLASH;
+			ENEMY_OUTFLYAWAY();
 
-		}
-		AddScore(100);
-	}
-	else if (g_Last_Punch_Phase == PUNCH_PHASE_CLASH)
-	{
-		//目標物にぶつかったときの処理はこの中に
-		if (g_PunchFrameCnt < LAST_PUNCH_HIT_FRAME)
-		{
-			
-			//月が描画された状態で
-			if (GetMoonFlag())
-			{
-				
-				//月よりも↓にいたら敵の座標を月に近づくよう動かす（10.0fは頭の分ちょっととった）
-				if (g_Enemy[1].Pos.y + 6.0f < GetMoonPos_y())
-				{
-
-					AddScore(100);
-					for (int i = 1; i < 7; i++)
-					{
-						
-						g_Enemy[i].Pos += D3DXVECTOR3(0.0f, 1.2f, 0.6f);
-					}
-				}
-				//月に衝突したら
-				else
-				{
-					//リザルトシーンに遷移
-					if (!GetResultStart())
-					{
-						SetResultStart_true();
-					}
-				}
-			}
-		}
-		else
-		{
-			g_PunchFrameCnt = 0;
-
+			//2020/1/16時点の設定：ゲージ％×1000
+			//AddScore(1000);
 		}
 	}
 }
-
 void ENEMY_FLYAWAY()
 {
 	g_FLYAWAY_Cnt++;
@@ -2061,9 +2060,6 @@ void ENEMY_FLYAWAY()
 			{
 				g_Enemy[i].Pos += D3DXVECTOR3(0.0f, 30.0f, 10.0f);
 			}
-		}
-		else
-		{
 		}
 	}
 }
@@ -2087,68 +2083,258 @@ void CreatePunchEndVec()
 	}
 }
 
-//スコアの係数出す関数
-float CoefCal()
+//スコア・ゲージの係数出す関数
+float CoefCal(bool s_or_g)
 {
-	//準備中
-	if (g_PunchPhase == PUNCH_PHASE_CHARGE)
+	//スコアの方
+	if (s_or_g)
 	{
-		return 0.5f;
-	}
-	else if (g_PunchPhase != PUNCH_PHASE_CHARGE)
-	{
-		//一時メモリ
-		float tmp_ZDist;
-
-		//左手パンチ系
-		if ((g_PunchPattern[g_PunchCnt] == PPI_LEFT_PUNCH) ||
-			(g_PunchPattern[g_PunchCnt] == PPI_L_JUMP_PUNCH) ||
-			(g_PunchPattern[g_PunchCnt] == L_FLASH_PUNCH))
+		//準備中　１
+		if (g_PunchPhase == PUNCH_PHASE_CHARGE)
 		{
-			tmp_ZDist = fabsf(g_PunchEndLine - g_Enemy[2].Pos.z);
-
-			tmp_ZDist = tmp_ZDist / g_ZDist;
-
-			//最低点
-			if (tmp_ZDist > 0.8f)
-			{
-				return 0.65f;
-			}
-			//普通くらい
-			else if ((tmp_ZDist <= 0.8f) && (tmp_ZDist > 0.4f))
-			{
-				return 0.8f;
-			}
-			//すごい
-			else if (tmp_ZDist <= 0.4f)
-			{
-				return 1.0f;
-			}
+			return 0.1f;
 		}
-		//右手パンチ系
-		else if ((g_PunchPattern[g_PunchCnt] == PPI_RIGHT_PUNCH) ||
+		else if (g_PunchPhase == PUNCH_PHASE_SWING)
+		{
+			//一時メモリ
+			float tmp_ZDist;
+
+			//左手パンチ系
+			if ((g_PunchPattern[g_PunchCnt] == PPI_LEFT_PUNCH) ||
+				(g_PunchPattern[g_PunchCnt] == PPI_L_JUMP_PUNCH) ||
+				(g_PunchPattern[g_PunchCnt] == L_FLASH_PUNCH))
+			{
+				tmp_ZDist = fabsf(g_PunchEndLine - g_Enemy[2].Pos.z);
+
+				tmp_ZDist = tmp_ZDist / g_ZDist;
+
+				//最低点　２
+				if (tmp_ZDist > 0.9f)
+				{
+					return 0.2f;
+				}
+				//３
+				else if ((tmp_ZDist <= 0.9f) && (tmp_ZDist > 0.8f))
+				{
+					return 0.3f;
+				}
+				//４
+				else if ((tmp_ZDist <= 0.8f) && (tmp_ZDist > 0.7f))
+				{
+					return 0.4f;
+				}
+				//５
+				else if ((tmp_ZDist <= 0.7f) && (tmp_ZDist > 0.6f))
+				{
+					return 0.5f;
+				}
+				//普通くらい　６
+				else if ((tmp_ZDist <= 0.6f) && (tmp_ZDist > 0.5f))
+				{
+					return 0.6f;
+				}
+				//７
+				else if ((tmp_ZDist <= 0.5f) && (tmp_ZDist > 0.4f))
+				{
+					return 0.7f;
+				}
+				//８
+				else if ((tmp_ZDist <= 0.4f) && (tmp_ZDist > 0.3f))
+				{
+					return 0.8f;
+				}
+				//９
+				else if ((tmp_ZDist <= 0.4f) && (tmp_ZDist > 0.3f))
+				{
+					return 0.9f;
+				}
+				//すごい　１０
+				else if (tmp_ZDist <= 0.3f)
+				{
+					return 1.0f;
+				}
+			}
+			//右手パンチ系
+			else if ((g_PunchPattern[g_PunchCnt] == PPI_RIGHT_PUNCH) ||
 				(g_PunchPattern[g_PunchCnt] == PPI_R_JUMP_PUNCH) ||
 				(g_PunchPattern[g_PunchCnt] == R_FLASH_PUNCH) ||
 				(g_PunchPattern[g_PunchCnt] == PPI_DUNK_PUNCH))
+			{
+				tmp_ZDist = fabsf(g_PunchEndLine - g_Enemy[3].Pos.z);
+
+				tmp_ZDist = tmp_ZDist / g_ZDist;
+
+				//最低点　２
+				if (tmp_ZDist > 0.9f)
+				{
+					return 0.2f;
+				}
+				//３
+				else if ((tmp_ZDist <= 0.9f) && (tmp_ZDist > 0.8f))
+				{
+					return 0.3f;
+				}
+				//４
+				else if ((tmp_ZDist <= 0.8f) && (tmp_ZDist > 0.7f))
+				{
+					return 0.4f;
+				}
+				//５
+				else if ((tmp_ZDist <= 0.7f) && (tmp_ZDist > 0.6f))
+				{
+					return 0.5f;
+				}
+				//普通くらい　６
+				else if ((tmp_ZDist <= 0.6f) && (tmp_ZDist > 0.5f))
+				{
+					return 0.6f;
+				}
+				//７
+				else if ((tmp_ZDist <= 0.5f) && (tmp_ZDist > 0.4f))
+				{
+					return 0.7f;
+				}
+				//８
+				else if ((tmp_ZDist <= 0.4f) && (tmp_ZDist > 0.3f))
+				{
+					return 0.8f;
+				}
+				//９
+				else if ((tmp_ZDist <= 0.4f) && (tmp_ZDist > 0.3f))
+				{
+					return 0.9f;
+				}
+				//すごい　１０
+				else if (tmp_ZDist <= 0.3f)
+				{
+					return 1.0f;
+				}
+			}
+		}
+	}
+	//ゲージの方
+	else if (!s_or_g)
+	{
+		//準備中　１
+		if (g_PunchPhase == PUNCH_PHASE_CHARGE)
 		{
-			tmp_ZDist = fabsf(g_PunchEndLine - g_Enemy[3].Pos.z);
+			return 10.0f;
+		}
+		else if (g_PunchPhase == PUNCH_PHASE_SWING)
+		{
+			//一時メモリ
+			float tmp_ZDist;
 
-			tmp_ZDist = tmp_ZDist / g_ZDist;
+			//左手パンチ系
+			if ((g_PunchPattern[g_PunchCnt] == PPI_LEFT_PUNCH) ||
+				(g_PunchPattern[g_PunchCnt] == PPI_L_JUMP_PUNCH) ||
+				(g_PunchPattern[g_PunchCnt] == L_FLASH_PUNCH))
+			{
+				tmp_ZDist = fabsf(g_PunchEndLine - g_Enemy[2].Pos.z);
 
-			//最低点
-			if (tmp_ZDist > 0.8f)
-			{
-				return 0.65f;
+				tmp_ZDist = tmp_ZDist / g_ZDist;
+
+				//最低点　２
+				if (tmp_ZDist > 0.9f)
+				{
+					return 8.0f;
+				}
+				//３
+				else if ((tmp_ZDist <= 0.9f) && (tmp_ZDist > 0.8f))
+				{
+					return 7.0f;
+				}
+				//４
+				else if ((tmp_ZDist <= 0.8f) && (tmp_ZDist > 0.7f))
+				{
+					return 6.0f;
+				}
+				//５
+				else if ((tmp_ZDist <= 0.7f) && (tmp_ZDist > 0.6f))
+				{
+					return 5.0f;
+				}
+				//普通くらい　６
+				else if ((tmp_ZDist <= 0.6f) && (tmp_ZDist > 0.5f))
+				{
+					return 4.0f;
+				}
+				//７
+				else if ((tmp_ZDist <= 0.5f) && (tmp_ZDist > 0.4f))
+				{
+					return 3.0f;
+				}
+				//８
+				else if ((tmp_ZDist <= 0.4f) && (tmp_ZDist > 0.3f))
+				{
+					return 2.0f;
+				}
+				//９
+				else if ((tmp_ZDist <= 0.4f) && (tmp_ZDist > 0.3f))
+				{
+					return 1.0f;
+				}
+				//すごい　１０
+				else if (tmp_ZDist <= 0.3f)
+				{
+					return 0.0f;
+				}
 			}
-			//普通くらい
-			else if ((tmp_ZDist <= 0.8f) && (tmp_ZDist > 0.4f))
+			//右手パンチ系
+			else if ((g_PunchPattern[g_PunchCnt] == PPI_RIGHT_PUNCH) ||
+				(g_PunchPattern[g_PunchCnt] == PPI_R_JUMP_PUNCH) ||
+				(g_PunchPattern[g_PunchCnt] == R_FLASH_PUNCH) ||
+				(g_PunchPattern[g_PunchCnt] == PPI_DUNK_PUNCH))
 			{
-				return 0.8f;
-			}
-			//すごい
-			else if (tmp_ZDist <= 0.4f)
-			{
-				return 1.0f;
+				tmp_ZDist = fabsf(g_PunchEndLine - g_Enemy[3].Pos.z);
+
+				tmp_ZDist = tmp_ZDist / g_ZDist;
+
+				//最低点　２
+				if (tmp_ZDist > 0.9f)
+				{
+					return 8.0f;
+				}
+				//３
+				else if ((tmp_ZDist <= 0.9f) && (tmp_ZDist > 0.8f))
+				{
+					return 7.0f;
+				}
+				//４
+				else if ((tmp_ZDist <= 0.8f) && (tmp_ZDist > 0.7f))
+				{
+					return 6.0f;
+				}
+				//５
+				else if ((tmp_ZDist <= 0.7f) && (tmp_ZDist > 0.6f))
+				{
+					return 5.0f;
+				}
+				//普通くらい　６
+				else if ((tmp_ZDist <= 0.6f) && (tmp_ZDist > 0.5f))
+				{
+					return 4.0f;
+				}
+				//７
+				else if ((tmp_ZDist <= 0.5f) && (tmp_ZDist > 0.4f))
+				{
+					return 3.0f;
+				}
+				//８
+				else if ((tmp_ZDist <= 0.4f) && (tmp_ZDist > 0.3f))
+				{
+					return 2.0f;
+				}
+				//９
+				else if ((tmp_ZDist <= 0.4f) && (tmp_ZDist > 0.3f))
+				{
+					return 1.0f;
+				}
+				//すごい
+				else if (tmp_ZDist <= 0.3f)
+				{
+					return 0.0f;
+				}
 			}
 		}
 	}
@@ -2192,19 +2378,371 @@ LAST_PUNCH_PHASE GetLastPunchPhase()
 {
 	return g_Last_Punch_Phase;
 }
-//追加
 
+//追加ｂｙ佐々木
 void ENEMY_OUTFLYAWAY()
 {
-	g_FLYAWAY_Cnt++;
-
 	for (int i = 1; i < 7; i++)
 	{
-		g_Enemy[i].Pos += D3DXVECTOR3(0.0f, 15.0f, 5.0f);
+		g_Enemy[i].Rot += D3DXVECTOR3(D3DXToRadian(0.0f), D3DXToRadian(0.0f), D3DXToRadian(0.0f));
+	}
+	//飛行機で止まる場合
+	if (GetCopy_Score() <= 300000)
+	{
+		//飛行機を描画していて尚且つエネミーと飛行機が接触したとき（310フレーム）
+		if (GetAirplaneFlag() && g_PunchFrameCnt >= 310)
+		{
+			g_PunchFrameCnt = 0;
+			g_Last_Punch_Phase = PUNCH_PHASE_CLASH;
+
+			//UpdateをUpdateさせない、そう止めるんだよぶつかった瞬間に
+			SetDrawStop();
+
+			//リザルトシーンに遷移
+			if (!GetResultStart())
+			{
+				SetResultStart_true();
+			}
+		}
+	}
+	//衛星で止まる場合
+	else if (GetCopy_Score() > 300000 && GetCopy_Score() <= 360000)
+	{
+		if (GetSatelliteFlag() && g_PunchFrameCnt >= 420)
+		{
+			g_PunchFrameCnt = 0;
+			g_Last_Punch_Phase = PUNCH_PHASE_CLASH;
+
+			SetDrawStop();
+
+			//リザルトシーンに遷移
+			if (!GetResultStart())
+			{
+				SetResultStart_true();
+			}
+		}
+	}
+	//月で止まる場合
+	else if (GetCopy_Score() >= 360000)
+	{
+		//目標物にぶつかったときの処理はこの中に
+		if (g_PunchFrameCnt < LAST_PUNCH_HIT_FRAME)
+		{
+			//月が描画された状態で
+			if (GetMoonFlag())
+			{
+				//月よりも↓にいたら敵の座標を月に近づくよう動かす（10.0fは頭の分ちょっととった）
+				if (g_Enemy[1].Pos.y + 6.0f < ((GetSkyModel() + 2)->Pos.y))
+				{
+					for (int i = 1; i < 7; i++)
+					{
+						g_Enemy[i].Pos += D3DXVECTOR3(0.0f, 1.2f, 0.6f);
+					}
+				}
+				//月に衝突したら
+				else
+				{
+					g_PunchFrameCnt = 0;
+					g_Last_Punch_Phase = PUNCH_PHASE_CLASH;
+					//リザルトシーンに遷移
+					if (!GetResultStart())
+					{
+						SetResultStart_true();
+					}
+				}
+			}
+		}
+		else
+		{
+			g_PunchFrameCnt = 0;
+		}
 	}
 
 }
 int Getg_PunchFrameCnt()
 {
 	return g_PunchFrameCnt;
+}
+
+void PlayTutorial()
+{
+
+	Tutorial_cnt++;
+	if (g_TutorialPhase == TUTORIAL_1)
+	{
+		//ゲーム開始～避け方の説明終了まで
+		if (Tutorial_cnt < TUTORIAL_1_FRAME)
+		{
+		}
+		else
+		{
+			//一回目殴って次の説明、もう一回殴って次のフェーズへ
+			if (Keyboard_IsTrigger(DIK_NUMPADENTER) || Keyboard_IsTrigger(DIK_RETURN))
+			{
+				g_Description_cnt++;
+
+				if (g_Description_cnt == 2)
+				{
+					g_TutorialPhase = TUTORIAL_2;
+					//カウント初期化
+					Tutorial_cnt = 0;
+					//敵の行動を許可する
+					g_EnemyMove_Flg = true;
+				}
+			}
+		}
+	}
+	if (g_TutorialPhase == TUTORIAL_2)
+	{
+		//左パンチ開始～回避待ちまで
+		if (Tutorial_cnt < TUTORIAL_2_FRAME)
+		{
+		}
+		else
+		{
+			//敵の行動を制限する
+			g_EnemyMove_Flg = false;
+			if (GetLrFlg())
+			{
+				g_TutorialPhase = TUTORIAL_3;
+				Tutorial_cnt = 0;
+
+				//敵の行動を許可する
+				g_EnemyMove_Flg = true;
+			}
+		}
+	}
+	if (g_TutorialPhase == TUTORIAL_3)
+	{
+		//回避成功～予兆説明
+		if (Tutorial_cnt < TUTORIAL_3_FRAME)
+		{
+
+		}
+		else
+		{
+			//敵の行動を許可する
+			g_EnemyMove_Flg = false;
+
+			//一回殴ってギリギリ避けの説明、もう一回殴って次のフェーズへ
+			if (Keyboard_IsTrigger(DIK_NUMPADENTER) || Keyboard_IsTrigger(DIK_RETURN))
+			{
+				g_Description_cnt++;
+				if (g_Description_cnt == 5)
+				{
+					Tutorial_cnt = 0;
+					g_TutorialPhase = TUTORIAL_4;
+				}
+			}
+		}
+	}
+	if (g_TutorialPhase == TUTORIAL_4)
+	{
+		//予兆説明終了～右パンチ開始まで
+		if (Tutorial_cnt < TUTORIAL_4_FRAME)
+		{
+		}
+		else
+		{
+			Tutorial_cnt = 0;
+			g_TutorialPhase = TUTORIAL_5;
+			//敵の行動を許可する
+			g_EnemyMove_Flg = true;
+		}
+	}
+	if (g_TutorialPhase == TUTORIAL_5)
+	{
+		//～右パンチ終了
+		if (Tutorial_cnt < TUTORIAL_5_FRAME)
+		{
+
+		}
+		else
+		{
+			//敵の行動を許可する
+			g_EnemyMove_Flg = false;
+
+			if (GetBigEnter() == true) {
+				//右回避で次のフェーズへ
+				if (Keyboard_IsRelease(DIK_D))
+				{
+					Tutorial_cnt = 0;
+					g_TutorialPhase = TUTORIAL_6;
+
+					//敵の行動を許可する
+					g_EnemyMove_Flg = true;
+				}
+			}
+			if (GetBigEnter() == false) {
+				//右回避で次のフェーズへ
+				if (Keyboard_IsPress(DIK_D))
+				{
+					Tutorial_cnt = 0;
+					g_TutorialPhase = TUTORIAL_6;
+
+					//敵の行動を許可する
+					g_EnemyMove_Flg = true;
+				}
+			}
+
+		}
+
+	}
+	if (g_TutorialPhase == TUTORIAL_6)
+	{
+		//チュートリアル終了の説明～ゲーム本編へ移行
+		if (Tutorial_cnt < TUTORIAL_6_FRAME)
+		{
+
+		}
+		else
+		{
+			g_EnemyMove_Flg = false;
+			Tutorial_cnt = 0;
+			g_TutorialPhase = TUTORIAL_7;
+		}
+	}
+	if (g_TutorialPhase == TUTORIAL_7)
+	{
+		//チュートリアル終了の説明～ゲーム本編へ移行
+		if (Tutorial_cnt < TUTORIAL_7_FRAME)
+		{
+
+		}
+		else
+		{
+			g_EnemyMove_Flg = false;
+			//殴って次のフェーズへ
+			if (Keyboard_IsTrigger(DIK_NUMPADENTER) || Keyboard_IsTrigger(DIK_RETURN))
+			{
+				Tutorial_cnt = 0;
+				g_EnemyMove_Flg = true;
+				g_Tutorial_Flg = false;
+			}
+		}
+	}
+}
+
+void DrawTutorial()
+{
+	if (g_Description_cnt == 0)
+	{
+		Sprite_Draw(TEXTURE_INDEX_TUTORIAL1,
+			SCREEN_WIDTH / 2,
+			SCREEN_HEIGHT / 2,
+			0,
+			0,
+			512,
+			288,
+			512 / 2,
+			288 / 2,
+			1.0f,
+			1.0f,
+			0.0f,
+			255);
+	}
+	else if (g_Description_cnt == 1)
+	{
+		Sprite_Draw(TEXTURE_INDEX_TUTORIAL2,
+			SCREEN_WIDTH / 2,
+			SCREEN_HEIGHT / 2,
+			0,
+			0,
+			512,
+			288,
+			512 / 2,
+			288 / 2,
+			1.0f,
+			1.0f,
+			0.0f,
+			255);
+	}
+	else if (g_Description_cnt == 2)
+	{
+		Sprite_Draw(TEXTURE_INDEX_TUTORIAL3,
+			SCREEN_WIDTH / 2,
+			SCREEN_HEIGHT / 2,
+			0,
+			0,
+			512,
+			288,
+			512 / 2,
+			288 / 2,
+			1.0f,
+			1.0f,
+			0.0f,
+			255);
+	}
+	else if (g_Description_cnt == 3)
+	{
+		Sprite_Draw(TEXTURE_INDEX_TUTORIAL4,
+			SCREEN_WIDTH / 2,
+			SCREEN_HEIGHT / 2,
+			0,
+			0,
+			512,
+			288,
+			512 / 2,
+			288 / 2,
+			1.0f,
+			1.0f,
+			0.0f,
+			255);
+	}
+	else if (g_Description_cnt == 4)
+	{
+		Sprite_Draw(TEXTURE_INDEX_TUTORIAL5,
+			SCREEN_WIDTH / 2,
+			SCREEN_HEIGHT / 2,
+			0,
+			0,
+			512,
+			288,
+			512 / 2,
+			288 / 2,
+			1.0f,
+			1.0f,
+			0.0f,
+			255);
+	}
+	else if (g_Description_cnt == 5)
+	{
+		Sprite_Draw(TEXTURE_INDEX_TUTORIAL6,
+			SCREEN_WIDTH / 2,
+			SCREEN_HEIGHT / 2,
+			0,
+			0,
+			512,
+			288,
+			512 / 2,
+			288 / 2,
+			1.0f,
+			1.0f,
+			0.0f,
+			255);
+	}
+	else if (g_Description_cnt == 6)
+	{
+
+	}
+	else if (g_Description_cnt == 7)
+	{
+
+	}
+
+}
+
+TUTORIAL_PHASE GetTutorialPhase()
+{
+	return g_TutorialPhase;
+}
+
+bool GetEnemyMove_Flg()
+{
+	return g_EnemyMove_Flg;
+}
+
+bool GetTutorialFlg()
+{
+	return g_Tutorial_Flg;
 }

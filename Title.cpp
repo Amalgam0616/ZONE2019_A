@@ -13,7 +13,7 @@
 float g_TitleGlovePos;
 int TitleGloveMoveCnt;
 bool g_TitlePunchEffectFlg;
-
+bool g_BigEnter;
 
 void InitTitle(void)
 {
@@ -26,6 +26,7 @@ void InitTitle(void)
 	InitParticle();
 	Init_TitleCamera();
 	PlaySound(SOUND_LABEL_SE_HIT);
+	g_BigEnter = false;
 
 }
 
@@ -56,14 +57,18 @@ void UpdateTitle(void)
 		}
 	}
 	 
+	//でかいエンターで入力
 	if (Keyboard_IsTrigger(DIK_NUMPADENTER))
 	{
 		SetScene(SCENE_INDEX_GAME);
+		g_BigEnter = true;
 	}
 
+	//キーボードで入力
 	if (Keyboard_IsTrigger(DIK_RETURN))
 	{
 		SetScene(SCENE_INDEX_GAME);
+		g_BigEnter = false;
 	}
 }
 
@@ -151,4 +156,8 @@ void DrawTitle(void)
 		0.0f,
 		255);
 
+}
+
+bool GetBigEnter(){
+	return g_BigEnter;
 }
